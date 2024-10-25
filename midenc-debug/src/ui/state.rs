@@ -3,7 +3,6 @@ use std::{rc::Rc, sync::Arc};
 use miden_assembly::Library;
 use miden_core::{utils::Deserializable, FieldElement};
 use miden_processor::{Felt, Program, StackInputs};
-use midenc_codegen_masm::Package;
 use midenc_session::{
     diagnostics::{IntoDiagnostic, Report, SourceSpan, Span, WrapErr},
     InputType, Session,
@@ -14,7 +13,7 @@ use crate::{
 };
 
 pub struct State {
-    pub package: Arc<Package>,
+    pub package: Arc<miden_package::Package>,
     pub inputs: DebuggerConfig,
     pub executor: DebugExecutor,
     pub execution_trace: ExecutionTrace,
@@ -47,10 +46,10 @@ impl State {
             args.reverse();
             inputs.inputs = StackInputs::new(args).into_diagnostic()?;
         }
-        let args = inputs.inputs.values().iter().copied().rev().collect::<Vec<_>>();
+        let args = inputs.inputs.iter().copied().rev().collect::<Vec<_>>();
         let package = load_package(&session)?;
 
-        let mut executor = crate::Executor::for_package(&package, args.clone(), &session)?;
+        let mut executor = crate::Executor::for_package(&package.clone(), args.clone(), &session)?;
         executor.with_advice_inputs(inputs.advice_inputs.clone());
         for link_library in session.options.link_libraries.iter() {
             let lib = link_library.load(&session)?;
@@ -91,7 +90,7 @@ impl State {
     pub fn reload(&mut self) -> Result<(), Report> {
         log::debug!("reloading program");
         let package = load_package(&self.session)?;
-        let args = self.inputs.inputs.values().iter().copied().rev().collect::<Vec<_>>();
+        let args = self.inputs.inputs.iter().copied().rev().collect::<Vec<_>>();
 
         let mut executor = crate::Executor::for_package(&package, args.clone(), &self.session)?;
         executor.with_advice_inputs(self.inputs.advice_inputs.clone());
@@ -265,20 +264,21 @@ impl State {
     }
 }
 
-fn load_package(session: &Session) -> Result<Arc<Package>, Report> {
+fn load_package(session: &Session) -> Result<Arc<miden_package::Package>, Report> {
     let package = match &session.inputs[0].file {
         InputType::Real(ref path) => {
-            Package::read_from_file(path).map(Arc::new).into_diagnostic()?
+            let bytes = std::fs::read(path).into_diagnostic()?;
+            miden_package::Package::read_from_bytes(bytes).map(Arc::new)?
         }
         InputType::Stdin { input, .. } => {
-            Package::read_from_bytes(input.as_slice()).map(Arc::new)?
+            miden_package::Package::read_from_bytes(input.as_slice()).map(Arc::new)?
         }
     };
 
     if let Some(entry) = session.options.entrypoint.as_ref() {
         // Input must be a library, not a program
         let id = entry
-            .parse::<midenc_hir::FunctionIdent>()
+            .parse::<miden_assembly::ast::QualifiedProcedureName>()
             .map_err(|_| Report::msg(format!("invalid function identifier: '{entry}'")))?;
         if !package.is_library() {
             return Err(Report::msg("cannot use --entrypoint with executable packages"));

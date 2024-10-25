@@ -1,5 +1,4 @@
 mod masm;
-mod mast;
 
 use midenc_hir::{
     self as hir,
@@ -7,7 +6,7 @@ use midenc_hir::{
 };
 use midenc_session::{diagnostics::Report, Session};
 
-pub use self::{masm::MasmArtifact, mast::MastArtifact};
+pub use self::masm::MasmArtifact;
 use crate::{intrinsics, ConvertHirToMasm, Program};
 
 pub type CompilerResult<T> = Result<T, Report>;

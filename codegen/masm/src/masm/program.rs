@@ -14,7 +14,6 @@ use midenc_hir_analysis::GlobalVariableAnalysis;
 use midenc_session::{Emit, Session};
 
 use super::{module::Modules, *};
-use crate::packaging::Rodata;
 
 inventory::submit! {
     midenc_session::CompileFlag::new("test_harness")

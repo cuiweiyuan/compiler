@@ -3,6 +3,7 @@ pub mod intrinsics;
 mod module;
 mod program;
 mod region;
+mod rodata;
 
 pub use midenc_hir::{
     Local, LocalId, MasmBlock as Block, MasmBlockId as BlockId, MasmImport as Import, MasmOp as Op,
@@ -15,6 +16,7 @@ pub use self::{
     module::{FrozenModuleTree, Module, ModuleTree},
     program::{Library, Program},
     region::Region,
+    rodata::Rodata,
 };
 
 /// This represents a descriptor for a pointer translated from the IR into a form suitable for
@@ -106,5 +108,26 @@ impl NativePtr {
     /// Converts this native pointer back to a byte-addressable pointer value
     pub const fn as_ptr(&self) -> u32 {
         (self.waddr * 16) + (self.index as u32 * 4) + self.offset as u32
+    }
+}
+
+impl From<miden_package::PtrDesc> for NativePtr {
+    fn from(value: miden_package::PtrDesc) -> Self {
+        NativePtr {
+            waddr: value.waddr,
+            index: value.index,
+            offset: value.offset,
+            addrspace: midenc_hir::AddressSpace::Unknown,
+        }
+    }
+}
+
+impl From<NativePtr> for miden_package::PtrDesc {
+    fn from(value: NativePtr) -> Self {
+        miden_package::PtrDesc {
+            waddr: value.waddr,
+            index: value.index,
+            offset: value.offset,
+        }
     }
 }

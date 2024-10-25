@@ -49,8 +49,7 @@ impl ExecutionTrace {
     where
         T: PopFromStack,
     {
-        let mut stack =
-            VecDeque::from_iter(self.outputs.clone().stack().iter().copied().map(TestFelt));
+        let mut stack = VecDeque::from_iter(self.outputs.clone().iter().copied().map(TestFelt));
         T::try_pop(&mut stack)
     }
 

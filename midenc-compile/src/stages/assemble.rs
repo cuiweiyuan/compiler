@@ -1,3 +1,6 @@
+use miden_package::{Dependency, MastArtifact, Package};
+use midenc_codegen_masm::MasmArtifact;
+
 use super::*;
 
 /// The artifact produced by the full compiler pipeline.
@@ -7,10 +10,10 @@ pub enum Artifact {
     /// The user requested MASM outputs, but
     Lowered(masm::ModuleTree),
     Linked(masm::MasmArtifact),
-    Assembled(masm::Package),
+    Assembled(Package),
 }
 impl Artifact {
-    pub fn unwrap_mast(self) -> masm::Package {
+    pub fn unwrap_mast(self) -> Package {
         match self {
             Self::Assembled(mast) => mast,
             Self::Linked(_) => {
@@ -46,7 +49,7 @@ impl Stage for AssembleStage {
                 );
                 session.emit(OutputMode::Text, &mast).into_diagnostic()?;
                 session.emit(OutputMode::Binary, &mast).into_diagnostic()?;
-                Ok(Artifact::Assembled(masm::Package::new(mast, &masm_artifact, session)))
+                Ok(Artifact::Assembled(build_package(mast, &masm_artifact, session)))
             }
             Left(masm_artifact) => {
                 log::debug!(
@@ -63,5 +66,64 @@ impl Stage for AssembleStage {
                 Ok(Artifact::Lowered(masm_modules))
             }
         }
+    }
+}
+
+fn build_package(mast: MastArtifact, masm: &MasmArtifact, session: &Session) -> Package {
+    let name = session.name.clone();
+    let digest = mast.digest();
+
+    let mut dependencies = Vec::new();
+    for link_lib in session.options.link_libraries.iter() {
+        log::debug!(
+            "registering link library '{}' ({}, from {:#?}) with linker",
+            link_lib.name,
+            link_lib.kind,
+            link_lib.path.as_ref()
+        );
+        // TODO(denysz): We already loaded these libraries in the LinkStage. Pass them as inputs?
+        let lib = link_lib
+            .load(session)
+            .unwrap_or_else(|_| panic!("failed to load link library {}", link_lib.name));
+        let dependency = Dependency {
+            name: link_lib.name.to_string().into(),
+            digest: *lib.digest(),
+        };
+        dependencies.push(dependency);
+    }
+
+    let mut manifest = miden_package::PackageManifest {
+        exports: Default::default(),
+        dependencies,
+    };
+
+    // Gater all of the rodata segments for this package
+    let rodata = match masm {
+        MasmArtifact::Executable(ref prog) => prog.rodatas().to_vec(),
+        MasmArtifact::Library(ref lib) => lib.rodatas().to_vec(),
+    };
+
+    // Gather all of the procedure metadata for exports of this package
+    if let MastArtifact::Library(ref lib) = mast {
+        let MasmArtifact::Library(ref _masm_lib) = masm else {
+            unreachable!("expected MasmArtifact to be a library");
+        };
+        for module_info in lib.module_infos() {
+            let module_path = module_info.path().path();
+            for (_, proc_info) in module_info.procedures() {
+                let proc_name = proc_info.name.as_str();
+                let name = format!("{module_path}::{proc_name}");
+                let digest = proc_info.digest;
+                manifest.exports.insert(miden_package::PackageExport { name, digest });
+            }
+        }
+    }
+
+    miden_package::Package {
+        name,
+        digest,
+        mast,
+        rodata: rodata.into_iter().map(Into::into).collect(),
+        manifest,
     }
 }

@@ -1,8 +1,9 @@
 use miden_assembly::Library as CompiledLibrary;
+use miden_package::MastArtifact;
 use midenc_hir::Symbol;
 use midenc_session::{diagnostics::Report, Emit, OutputMode, OutputType, Session};
 
-use crate::{Library, MastArtifact, Module, Program};
+use crate::{Library, Module, Program};
 
 /// The artifact produced by lowering an [hir::Program] to Miden Assembly
 ///

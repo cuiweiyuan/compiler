@@ -29,18 +29,18 @@ pub fn compile(session: Rc<Session>) -> CompilerResult<()> {
     let mut analyses = AnalysisManager::new();
     log::info!("starting compilation session");
     match compile_inputs(session.inputs.clone(), &mut analyses, &session)? {
-        Artifact::Assembled(ref mast) => {
+        Artifact::Assembled(ref package) => {
             log::info!(
                 "succesfully assembled mast package '{}' with digest {}",
-                mast.name,
-                DisplayHex::new(&mast.digest.as_bytes())
+                package.name,
+                DisplayHex::new(&package.digest.as_bytes())
             );
             session
-                .emit(OutputMode::Text, mast)
+                .emit(OutputMode::Text, package)
                 .into_diagnostic()
                 .wrap_err("failed to pretty print 'mast' artifact")?;
             session
-                .emit(OutputMode::Binary, mast)
+                .emit(OutputMode::Binary, package)
                 .into_diagnostic()
                 .wrap_err("failed to serialize 'mast' artifact")
         }

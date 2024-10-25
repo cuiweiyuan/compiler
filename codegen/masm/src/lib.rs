@@ -9,14 +9,12 @@ mod compiler;
 mod convert;
 mod emulator;
 mod masm;
-mod packaging;
 #[cfg(test)]
 mod tests;
 
 pub use self::{
     compiler::{
         default_function_rewrites, default_rewrites, CompilerResult, MasmArtifact, MasmCompiler,
-        MastArtifact,
     },
     convert::ConvertHirToMasm,
     emulator::{
@@ -24,5 +22,4 @@ pub use self::{
         Emulator, EmulatorEvent, InstructionPointer, WatchMode, Watchpoint, WatchpointId,
     },
     masm::*,
-    packaging::*,
 };

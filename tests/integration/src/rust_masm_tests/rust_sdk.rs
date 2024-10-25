@@ -2,7 +2,6 @@ use std::{collections::BTreeMap, env, path::PathBuf};
 
 use expect_test::expect_file;
 use miden_core::crypto::hash::RpoDigest;
-use midenc_codegen_masm::Package;
 use midenc_frontend_wasm::WasmTranslationConfig;
 use midenc_hir::{InterfaceFunctionIdent, InterfaceIdent, Symbol};
 
@@ -81,8 +80,8 @@ fn rust_sdk_p2id_note_script() {
         "../rust-apps-wasm/rust-sdk/p2id-note",
         config,
         [
-            // "--link-library".into(),
-            // masl_path.into_os_string().into_string().unwrap().into(),
+            "--link-library".into(),
+            masp_path.into_os_string().into_string().unwrap().into(),
         ],
     );
     let artifact_name = test.artifact_name().to_string();

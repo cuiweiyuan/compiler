@@ -4,7 +4,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use miden_core::Felt;
-use midenc_codegen_masm::Package;
 use midenc_debug::{Executor, PopFromStack};
 use midenc_session::Session;
 use proptest::{prop_assert_eq, test_runner::TestCaseError};
@@ -22,7 +21,7 @@ mod wit_sdk;
 
 pub fn run_masm_vs_rust<T>(
     rust_out: T,
-    package: &Package,
+    package: &miden_package::Package,
     args: &[Felt],
     session: &Session,
 ) -> Result<(), TestCaseError>

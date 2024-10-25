@@ -43,7 +43,7 @@ pub use self::{
     emit::Emit,
     flags::{CompileFlag, CompileFlags, FlagAction},
     inputs::{FileType, InputFile, InputType, InvalidInputError},
-    libs::{LibraryKind, LinkLibrary},
+    libs::{LibraryKind, LinkLibrary, BASE, STDLIB},
     options::*,
     outputs::{OutputFile, OutputFiles, OutputMode, OutputType, OutputTypeSpec, OutputTypes},
     statistics::Statistics,
