@@ -240,7 +240,7 @@ where
                 )
                 .await
             })?;
-            dbg!(&wasm_outputs);
+            // dbg!(&wasm_outputs);
             if wasm_outputs.is_empty() {
                 // crates that don't have a WIT component are ignored by the
                 // `cargo-component` run_cargo_command and return no outputs.

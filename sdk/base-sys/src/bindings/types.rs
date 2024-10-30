@@ -5,7 +5,8 @@ use miden_stdlib_sys::{Felt, Word};
 pub struct AccountId(Felt);
 
 impl AccountId {
-    pub fn as_felt(&self) -> Felt {
+    #[inline(always)]
+    pub const fn as_felt(&self) -> Felt {
         self.0
     }
 }
