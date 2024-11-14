@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, boxed::Box, format, str::FromStr, string::ToString, sync::Arc};
-use core::{fmt, panic};
+use core::fmt;
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
@@ -111,7 +111,10 @@ impl LinkLibrary {
                 let package = miden_package::Package::read_from_bytes(bytes)?;
                 let lib = match package.mast {
                     miden_package::MastArtifact::Executable(_) => {
-                        panic!("expected library for Miden package, not program")
+                        return Err(Report::msg(format!(
+                            "Expected Miden package to contain a Library, got Program: '{}'",
+                            path.display()
+                        )))
                     }
                     miden_package::MastArtifact::Library(lib) => lib.clone(),
                 };
