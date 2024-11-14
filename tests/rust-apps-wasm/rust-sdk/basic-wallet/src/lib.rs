@@ -17,16 +17,17 @@ fn my_panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+use bindings::exports::miden::basic_wallet::*;
+
 bindings::export!(MyAccount with_types_in bindings);
 
 mod bindings;
 
-use bindings::exports::miden::basic_wallet::basic_wallet::Guest;
-use miden::{blake3_hash_1to1, CoreAsset, Felt, NoteType, Recipient, Tag};
+use miden::{blake3_hash_1to1, felt, CoreAsset, Felt, NoteType, Recipient, Tag};
 
 struct MyAccount;
 
-impl Guest for MyAccount {
+impl basic_wallet::Guest for MyAccount {
     fn receive_asset(asset: CoreAsset) {
         miden::account::add_asset(asset);
     }
@@ -35,7 +36,9 @@ impl Guest for MyAccount {
         let asset = miden::account::remove_asset(asset);
         miden::tx::create_note(asset, tag, note_type, recipient);
     }
+}
 
+impl aux::Guest for MyAccount {
     fn test_felt_intrinsics(a: Felt, b: Felt) -> Felt {
         a + b
     }
@@ -43,5 +46,10 @@ impl Guest for MyAccount {
     fn test_stdlib(input: Vec<u8>) -> Vec<u8> {
         let input: [u8; 32] = input.try_into().unwrap();
         blake3_hash_1to1(input).to_vec()
+    }
+
+    fn process_list_felt(input: Vec<Felt>) -> Vec<Felt> {
+        // input.into_iter().map(|felt| felt + felt!(1)).collect()
+        todo!()
     }
 }

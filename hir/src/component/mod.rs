@@ -23,6 +23,27 @@ pub struct CanonicalOptions {
     pub post_return: Option<FunctionIdent>,
 }
 
+impl fmt::Display for CanonicalOptions {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.pretty_print(f)
+    }
+}
+
+impl formatter::PrettyPrint for CanonicalOptions {
+    fn render(&self) -> formatter::Document {
+        use crate::formatter::*;
+
+        let mut doc = Document::Empty;
+        if let Some(realloc) = self.realloc.as_ref() {
+            doc += const_text("(realloc ") + display(realloc) + const_text(") ");
+        }
+        if let Some(post_return) = self.post_return.as_ref() {
+            doc += const_text("(post-return ") + display(post_return) + const_text(") ");
+        }
+        doc
+    }
+}
+
 /// A component import translated from a Wasm component import that is following
 /// the Wasm Component Model Canonical ABI.
 #[derive(Debug, Clone)]
@@ -118,12 +139,6 @@ impl formatter::PrettyPrint for ComponentImport {
     }
 }
 
-/// The name of a exported function
-#[derive(
-    Debug, Clone, Ord, PartialEq, PartialOrd, Eq, Hash, derive_more::From, derive_more::Into,
-)]
-pub struct FunctionExportName(Symbol);
-
 /// A component export
 #[derive(Debug)]
 pub struct ComponentExport {
@@ -135,6 +150,21 @@ pub struct ComponentExport {
     pub options: CanonicalOptions,
 }
 
+impl formatter::PrettyPrint for ComponentExport {
+    fn render(&self) -> formatter::Document {
+        use crate::formatter::*;
+
+        flatten(
+            display(self.function)
+                + const_text(" ")
+                + text(format!("{}", self.function_ty))
+                + const_text(" ")
+                + text(format!("{}", self.options))
+                + const_text(" "),
+        )
+    }
+}
+
 /// A [Component] is a collection of [Module]s that are being compiled together as a package and
 /// have exports/imports.
 #[derive(Default)]
@@ -143,11 +173,11 @@ pub struct Component {
     /// The modules should be stored in a topological order
     modules: IndexMap<Ident, Box<Module>>,
 
-    /// A list of this component's imports, indexed by function identifier
+    /// A list of this component's imports, indexed by module function identifier
     imports: BTreeMap<FunctionIdent, ComponentImport>,
 
     /// A list of this component's exports, indexed by export name
-    exports: BTreeMap<FunctionExportName, ComponentExport>,
+    exports: BTreeMap<InterfaceFunctionIdent, ComponentExport>,
 }
 
 impl Component {
@@ -186,7 +216,7 @@ impl Component {
         &self.imports
     }
 
-    pub fn exports(&self) -> &BTreeMap<FunctionExportName, ComponentExport> {
+    pub fn exports(&self) -> &BTreeMap<InterfaceFunctionIdent, ComponentExport> {
         &self.exports
     }
 
@@ -239,16 +269,32 @@ impl formatter::PrettyPrint for Component {
             .map(|doc| const_text(";; Modules") + nl() + doc)
             .unwrap_or(Document::Empty);
 
-        let body = vec![imports, modules].into_iter().filter(|section| !section.is_empty()).fold(
-            nl(),
-            |a, b| {
+        let exports = self
+            .exports
+            .iter()
+            .map(|(name, export)| {
+                const_text("(")
+                    + const_text("lift")
+                    + const_text(" ")
+                    + name.render()
+                    + const_text(" ")
+                    + export.render()
+                    + const_text(")")
+            })
+            .reduce(|acc, doc| acc + nl() + doc)
+            .map(|doc| const_text(";; Component Exports") + nl() + doc)
+            .unwrap_or(Document::Empty);
+
+        let body = vec![imports, modules, exports]
+            .into_iter()
+            .filter(|section| !section.is_empty())
+            .fold(nl(), |a, b| {
                 if matches!(a, Document::Newline) {
                     indent(4, a + b)
                 } else {
                     a + nl() + indent(4, nl() + b)
                 }
-            },
-        );
+            });
 
         let header = const_text("(") + const_text("component") + const_text(" ");
 
@@ -267,7 +313,7 @@ impl formatter::PrettyPrint for Component {
 pub struct ComponentBuilder<'a> {
     modules: IndexMap<Ident, Box<Module>>,
     imports: BTreeMap<FunctionIdent, ComponentImport>,
-    exports: BTreeMap<FunctionExportName, ComponentExport>,
+    exports: BTreeMap<InterfaceFunctionIdent, ComponentExport>,
     entry: Option<FunctionIdent>,
     diagnostics: &'a DiagnosticsHandler,
 }
@@ -333,7 +379,7 @@ impl<'a> ComponentBuilder<'a> {
         self.imports.insert(function_id, import);
     }
 
-    pub fn add_export(&mut self, name: FunctionExportName, export: ComponentExport) {
+    pub fn add_export(&mut self, name: InterfaceFunctionIdent, export: ComponentExport) {
         self.exports.insert(name, export);
     }
 

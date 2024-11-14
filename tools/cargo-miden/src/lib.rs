@@ -197,6 +197,7 @@ where
                     "hash-two-to-one",
                     "add-asset",
                     "add",
+                    "unchecked-from-u64",
                 ]
                 .into_iter()
                 .map(|s| s.to_string())

@@ -26,7 +26,7 @@ use crate::{
         module_env::ParsedModule,
         module_translation_state::ModuleTranslationState,
         types::{EntityIndex, FuncIndex},
-        Module, ModuleImport,
+        Module,
     },
     unsupported_diag, WasmTranslationConfig,
 };
@@ -117,7 +117,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
             }
         }
         for (name, export) in &wasm_translation.component.exports {
-            self.build_export(export, name, &mut component_builder)?;
+            self.build_export(export, name, None, &mut component_builder)?;
         }
         Ok(component_builder.build())
     }
@@ -183,7 +183,21 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                     self.config,
                     self.session,
                 )?;
-                component_builder.add_module(ir_module.into()).expect("module is already added");
+                // Skip the shim and fixups core modules, they are a workaround for
+                // specify the core instance memory and reallod function for the lowering
+
+                // TODO:
+                // Imported function from the shim has empty module name and "0" as a if name.
+
+                if ir_module.name.as_str() != "wit-component:shim"
+                    && ir_module.name.as_str() != "wit-component:fixups"
+                {
+                    component_builder
+                        .add_module(ir_module.into())
+                        .expect("module is already added");
+                } else {
+                    // dbg!(&ir_module.functions().collect::<Vec<_>>());
+                }
             }
             InstantiateModule::Import(..) => {
                 unsupported_diag!(
@@ -212,8 +226,18 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 options,
             } => {
                 let module_import = module.imports.get(idx).expect("module import not found");
+                let function_id = module.func_name(module_import.index.unwrap_func()).into();
+                let function_id = FunctionIdent {
+                    module: module.name(),
+                    function: function_id,
+                };
+
+                // TODO:
+                // Find process_list_felt instead empty module name and "0" function name!
+                // Follow module_import.index through the shim modules/imports/exports?
+
                 let runtime_import_idx = self.lower_imports[index];
-                let function_id = function_id_from_import(module_import);
+                // dbg!(&module_import);
                 match self.translate_import(
                     runtime_import_idx,
                     *lower_ty,
@@ -330,19 +354,25 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         &self,
         export: &Export,
         name: &String,
+        interface: Option<String>,
         component_builder: &mut ComponentBuilder,
     ) -> WasmResult<()> {
         match export {
             Export::LiftedFunction { ty, func, options } => {
-                let export_name = Symbol::intern(name).into();
+                dbg!(name);
+                // The inline export does no have an interface name
+                let interface = interface.unwrap_or_default();
+                dbg!(&interface);
+                let export_name = InterfaceFunctionIdent::from_full(interface, name.clone());
                 let export = self.build_export_lifted_function(func, ty, options)?;
                 component_builder.add_export(export_name, export);
                 Ok(())
             }
             Export::Instance(exports) => {
+                let interface = Some(name.clone());
                 // Flatten any(nested) interface instance exports into the IR `Component` exports
-                for (name, export) in exports {
-                    self.build_export(export, name, component_builder)?;
+                for (export_name, export) in exports {
+                    self.build_export(export, export_name, interface.clone(), component_builder)?;
                 }
                 Ok(())
             }
@@ -371,10 +401,10 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         ty: &TypeFuncIndex,
         options: &CanonicalOptions,
     ) -> WasmResult<ComponentExport> {
-        let func_ident = self.func_id_from_core_def(func)?;
+        let core_func_ident = self.func_id_from_core_def(func)?;
         let lifted_func_ty = convert_lifted_func_ty(ty, &self.component_types);
         let export = midenc_hir::ComponentExport {
-            function: func_ident,
+            function: core_func_ident,
             function_ty: lifted_func_ty,
             options: self.translate_canonical_options(options)?,
         };
@@ -442,11 +472,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
             post_return: options.post_return.map(|idx| self.post_returns[&idx]),
         })
     }
-}
-
-/// Get the function id from the given Wasm core module import
-fn function_id_from_import(module_import: &ModuleImport) -> FunctionIdent {
-    recover_imported_masm_function_id(&module_import.module, module_import.field.as_str())
 }
 
 /// Get the function id from the given Wasm func_idx in the given Wasm core exporting_module

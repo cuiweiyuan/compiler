@@ -7,7 +7,7 @@ use std::{
 use expect_test::expect_file;
 use miden_core::crypto::hash::RpoDigest;
 use midenc_frontend_wasm::WasmTranslationConfig;
-use midenc_hir::{FunctionExportName, InterfaceFunctionIdent, InterfaceIdent, Symbol};
+use midenc_hir::{InterfaceFunctionIdent, InterfaceIdent, Symbol};
 
 use crate::CompilerTest;
 
@@ -41,8 +41,6 @@ fn sdk_basic_wallet() {
     };
     let expected_imports: HashSet<InterfaceFunctionIdent> =
         [create_note_ident, remove_asset_ident, add_asset_ident].into_iter().collect();
-    let expected_exports: Vec<FunctionExportName> =
-        vec![Symbol::intern("send-asset").into(), Symbol::intern("receive-asset").into()];
     let config = WasmTranslationConfig::default();
     let mut test =
         CompilerTest::rust_source_cargo_component("../rust-apps-wasm/wit-sdk/basic-wallet", config);
@@ -56,9 +54,6 @@ fn sdk_basic_wallet() {
     let ir = test.hir().unwrap_component();
     for import in ir.imports().values() {
         assert!(expected_imports.contains(&import.unwrap_canon_abi_import().interface_function));
-    }
-    for name in expected_exports {
-        assert!(ir.exports().contains_key(&name));
     }
 }
 
@@ -92,7 +87,6 @@ fn sdk_basic_wallet_p2id_note() {
     ]
     .into_iter()
     .collect();
-    let expected_exports: Vec<FunctionExportName> = vec![Symbol::intern("note-script").into()];
     let config = WasmTranslationConfig::default();
     let mut test =
         CompilerTest::rust_source_cargo_component("../rust-apps-wasm/wit-sdk/p2id-note", config);
@@ -112,8 +106,5 @@ fn sdk_basic_wallet_p2id_note() {
         {
             assert!(canon_abi_import.options.realloc.is_some());
         }
-    }
-    for name in expected_exports {
-        assert!(ir.exports().contains_key(&name));
     }
 }

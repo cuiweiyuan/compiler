@@ -4,5 +4,6 @@ world p2id-world {
     include miden:core-import/all@1.0.0;
 
     import miden:basic-wallet/basic-wallet@1.0.0;
+    import miden:basic-wallet/aux@1.0.0;
     export miden:base/note-script@1.0.0;
 }

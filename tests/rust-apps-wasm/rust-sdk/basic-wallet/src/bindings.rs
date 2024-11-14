@@ -42,6 +42,43 @@ pub mod miden {
                     _rt::bool_lift(ret as u8)
                 }
             }
+            #[allow(unused_unsafe, clippy::all)]
+            pub fn from_u64_unchecked(a: u64) -> f32 {
+                unsafe {
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(
+                        wasm_import_module = "miden:core-import/intrinsics-felt@1.0.0"
+                    )]
+                    extern "C" {
+                        #[link_name = "from-u64-unchecked"]
+                        fn wit_import(_: i64) -> f32;
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    fn wit_import(_: i64) -> f32 {
+                        unreachable!()
+                    }
+                    let ret = wit_import(_rt::as_i64(&a));
+                    ret
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
+            pub fn assert_eq(a: f32, b: f32) {
+                unsafe {
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(
+                        wasm_import_module = "miden:core-import/intrinsics-felt@1.0.0"
+                    )]
+                    extern "C" {
+                        #[link_name = "assert-eq"]
+                        fn wit_import(_: f32, _: f32);
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    fn wit_import(_: f32, _: f32) {
+                        unreachable!()
+                    }
+                    wit_import(_rt::as_f32(&a), _rt::as_f32(&b));
+                }
+            }
         }
         #[allow(dead_code, clippy::all)]
         pub mod stdlib_crypto_hashes_blake3 {
@@ -200,6 +237,41 @@ pub mod exports {
                         },
                     );
                 }
+                pub trait Guest {
+                    fn receive_asset(core_asset: miden::CoreAsset);
+                    fn send_asset(
+                        core_asset: miden::CoreAsset,
+                        tag: miden::Tag,
+                        note_type: miden::NoteType,
+                        recipient: miden::Recipient,
+                    );
+                }
+                #[doc(hidden)]
+                macro_rules! __export_miden_basic_wallet_basic_wallet_1_0_0_cabi {
+                    ($ty:ident with_types_in $($path_to_types:tt)*) => {
+                        const _ : () = { #[export_name =
+                        "miden:basic-wallet/basic-wallet@1.0.0#receive-asset"] unsafe
+                        extern "C" fn export_receive_asset(arg0 : f32, arg1 : f32, arg2 :
+                        f32, arg3 : f32,) { $($path_to_types)*::
+                        _export_receive_asset_cabi::<$ty > (arg0, arg1, arg2, arg3) }
+                        #[export_name =
+                        "miden:basic-wallet/basic-wallet@1.0.0#send-asset"] unsafe extern
+                        "C" fn export_send_asset(arg0 : f32, arg1 : f32, arg2 : f32, arg3
+                        : f32, arg4 : f32, arg5 : f32, arg6 : f32, arg7 : f32, arg8 :
+                        f32, arg9 : f32,) { $($path_to_types)*::
+                        _export_send_asset_cabi::<$ty > (arg0, arg1, arg2, arg3, arg4,
+                        arg5, arg6, arg7, arg8, arg9) } };
+                    };
+                }
+                #[doc(hidden)]
+                pub(crate) use __export_miden_basic_wallet_basic_wallet_1_0_0_cabi;
+            }
+            #[allow(dead_code, clippy::all)]
+            pub mod aux {
+                #[used]
+                #[doc(hidden)]
+                static __FORCE_SECTION_REF: fn() = super::super::super::super::__link_custom_section_describing_imports;
+                use super::super::super::super::_rt;
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
                 pub unsafe fn _export_test_felt_intrinsics_cabi<T: Guest>(
@@ -243,52 +315,73 @@ pub mod exports {
                     let len2 = l1;
                     _rt::cabi_dealloc(base2, len2 * 1, 1);
                 }
-                pub trait Guest {
-                    fn receive_asset(core_asset: miden::CoreAsset);
-                    fn send_asset(
-                        core_asset: miden::CoreAsset,
-                        tag: miden::Tag,
-                        note_type: miden::NoteType,
-                        recipient: miden::Recipient,
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_process_list_felt_cabi<T: Guest>(
+                    arg0: *mut u8,
+                    arg1: usize,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
+                    let len0 = arg1;
+                    let result1 = T::process_list_felt(
+                        _rt::Vec::from_raw_parts(arg0.cast(), len0, len0),
                     );
+                    let ptr2 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    let vec3 = (result1).into_boxed_slice();
+                    let ptr3 = vec3.as_ptr().cast::<u8>();
+                    let len3 = vec3.len();
+                    ::core::mem::forget(vec3);
+                    *ptr2.add(4).cast::<usize>() = len3;
+                    *ptr2.add(0).cast::<*mut u8>() = ptr3.cast_mut();
+                    ptr2
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn __post_return_process_list_felt<T: Guest>(arg0: *mut u8) {
+                    let l0 = *arg0.add(0).cast::<*mut u8>();
+                    let l1 = *arg0.add(4).cast::<usize>();
+                    let base2 = l0;
+                    let len2 = l1;
+                    _rt::cabi_dealloc(base2, len2 * 4, 4);
+                }
+                pub trait Guest {
                     fn test_felt_intrinsics(
                         a: miden::Felt,
                         b: miden::Felt,
                     ) -> miden::Felt;
                     fn test_stdlib(input: _rt::Vec<u8>) -> _rt::Vec<u8>;
+                    fn process_list_felt(
+                        input: _rt::Vec<miden::Felt>,
+                    ) -> _rt::Vec<miden::Felt>;
                 }
                 #[doc(hidden)]
-                macro_rules! __export_miden_basic_wallet_basic_wallet_1_0_0_cabi {
+                macro_rules! __export_miden_basic_wallet_aux_1_0_0_cabi {
                     ($ty:ident with_types_in $($path_to_types:tt)*) => {
                         const _ : () = { #[export_name =
-                        "miden:basic-wallet/basic-wallet@1.0.0#receive-asset"] unsafe
-                        extern "C" fn export_receive_asset(arg0 : f32, arg1 : f32, arg2 :
-                        f32, arg3 : f32,) { $($path_to_types)*::
-                        _export_receive_asset_cabi::<$ty > (arg0, arg1, arg2, arg3) }
-                        #[export_name =
-                        "miden:basic-wallet/basic-wallet@1.0.0#send-asset"] unsafe extern
-                        "C" fn export_send_asset(arg0 : f32, arg1 : f32, arg2 : f32, arg3
-                        : f32, arg4 : f32, arg5 : f32, arg6 : f32, arg7 : f32, arg8 :
-                        f32, arg9 : f32,) { $($path_to_types)*::
-                        _export_send_asset_cabi::<$ty > (arg0, arg1, arg2, arg3, arg4,
-                        arg5, arg6, arg7, arg8, arg9) } #[export_name =
-                        "miden:basic-wallet/basic-wallet@1.0.0#test-felt-intrinsics"]
-                        unsafe extern "C" fn export_test_felt_intrinsics(arg0 : f32, arg1
-                        : f32,) -> f32 { $($path_to_types)*::
+                        "miden:basic-wallet/aux@1.0.0#test-felt-intrinsics"] unsafe
+                        extern "C" fn export_test_felt_intrinsics(arg0 : f32, arg1 :
+                        f32,) -> f32 { $($path_to_types)*::
                         _export_test_felt_intrinsics_cabi::<$ty > (arg0, arg1) }
-                        #[export_name =
-                        "miden:basic-wallet/basic-wallet@1.0.0#test-stdlib"] unsafe
-                        extern "C" fn export_test_stdlib(arg0 : * mut u8, arg1 : usize,)
-                        -> * mut u8 { $($path_to_types)*:: _export_test_stdlib_cabi::<$ty
-                        > (arg0, arg1) } #[export_name =
-                        "cabi_post_miden:basic-wallet/basic-wallet@1.0.0#test-stdlib"]
-                        unsafe extern "C" fn _post_return_test_stdlib(arg0 : * mut u8,) {
+                        #[export_name = "miden:basic-wallet/aux@1.0.0#test-stdlib"]
+                        unsafe extern "C" fn export_test_stdlib(arg0 : * mut u8, arg1 :
+                        usize,) -> * mut u8 { $($path_to_types)*::
+                        _export_test_stdlib_cabi::<$ty > (arg0, arg1) } #[export_name =
+                        "cabi_post_miden:basic-wallet/aux@1.0.0#test-stdlib"] unsafe
+                        extern "C" fn _post_return_test_stdlib(arg0 : * mut u8,) {
                         $($path_to_types)*:: __post_return_test_stdlib::<$ty > (arg0) }
-                        };
+                        #[export_name = "miden:basic-wallet/aux@1.0.0#process-list-felt"]
+                        unsafe extern "C" fn export_process_list_felt(arg0 : * mut u8,
+                        arg1 : usize,) -> * mut u8 { $($path_to_types)*::
+                        _export_process_list_felt_cabi::<$ty > (arg0, arg1) }
+                        #[export_name =
+                        "cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt"]
+                        unsafe extern "C" fn _post_return_process_list_felt(arg0 : * mut
+                        u8,) { $($path_to_types)*:: __post_return_process_list_felt::<$ty
+                        > (arg0) } };
                     };
                 }
                 #[doc(hidden)]
-                pub(crate) use __export_miden_basic_wallet_basic_wallet_1_0_0_cabi;
+                pub(crate) use __export_miden_basic_wallet_aux_1_0_0_cabi;
                 #[repr(align(4))]
                 struct _RetArea([::core::mem::MaybeUninit<u8>; 8]);
                 static mut _RET_AREA: _RetArea = _RetArea(
@@ -325,6 +418,29 @@ mod _rt {
             }
         } else {
             val != 0
+        }
+    }
+    pub fn as_i64<T: AsI64>(t: T) -> i64 {
+        t.as_i64()
+    }
+    pub trait AsI64 {
+        fn as_i64(self) -> i64;
+    }
+    impl<'a, T: Copy + AsI64> AsI64 for &'a T {
+        fn as_i64(self) -> i64 {
+            (*self).as_i64()
+        }
+    }
+    impl AsI64 for i64 {
+        #[inline]
+        fn as_i64(self) -> i64 {
+            self as i64
+        }
+    }
+    impl AsI64 for u64 {
+        #[inline]
+        fn as_i64(self) -> i64 {
+            self as i64
         }
     }
     pub fn as_i32<T: AsI32>(t: T) -> i32 {
@@ -427,7 +543,9 @@ macro_rules! __export_basic_wallet_world_impl {
         $($path_to_types_root)*::
         exports::miden::basic_wallet::basic_wallet::__export_miden_basic_wallet_basic_wallet_1_0_0_cabi!($ty
         with_types_in $($path_to_types_root)*::
-        exports::miden::basic_wallet::basic_wallet);
+        exports::miden::basic_wallet::basic_wallet); $($path_to_types_root)*::
+        exports::miden::basic_wallet::aux::__export_miden_basic_wallet_aux_1_0_0_cabi!($ty
+        with_types_in $($path_to_types_root)*:: exports::miden::basic_wallet::aux);
     };
 }
 #[doc(inline)]
@@ -435,9 +553,9 @@ pub(crate) use __export_basic_wallet_world_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.31.0:miden:basic-wallet@1.0.0:basic-wallet-world:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1609] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc0\x0b\x01A\x02\x01\
-A\x15\x01B\x1f\x01r\x01\x05innerv\x04\0\x04felt\x03\0\0\x01o\x04\x01\x01\x01\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1828] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x9b\x0d\x01A\x02\x01\
+A\x17\x01B\x1f\x01r\x01\x05innerv\x04\0\x04felt\x03\0\0\x01o\x04\x01\x01\x01\x01\
 \x01r\x01\x05inner\x02\x04\0\x04word\x03\0\x03\x01r\x01\x05inner\x01\x04\0\x0aac\
 count-id\x03\0\x05\x01r\x01\x05inner\x04\x04\0\x09recipient\x03\0\x07\x01r\x01\x05\
 inner\x01\x04\0\x03tag\x03\0\x09\x01r\x01\x05inner\x04\x04\0\x0acore-asset\x03\0\
@@ -448,30 +566,36 @@ orage-root\x03\0\x15\x01r\x01\x05inner\x04\x04\0\x11account-code-root\x03\0\x17\
 r\x01\x05inner\x04\x04\0\x10vault-commitment\x03\0\x19\x01r\x01\x05inner\x01\x04\
 \0\x07note-id\x03\0\x1b\x01r\x01\x05inner\x01\x04\0\x09note-type\x03\0\x1d\x03\x01\
 \x1bmiden:base/core-types@1.0.0\x05\0\x01B\x02\x01@\0\0z\x04\0\x09heap-base\x01\0\
-\x03\x01&miden:core-import/intrinsics-mem@1.0.0\x05\x01\x01B\x04\x01@\x02\x01av\x01\
-bv\0v\x04\0\x03add\x01\0\x01@\x02\x01av\x01bv\0\x7f\x04\0\x02eq\x01\x01\x03\x01'\
-miden:core-import/intrinsics-felt@1.0.0\x05\x02\x01B\x02\x01@\x09\x02a0z\x02a1z\x02\
-a2z\x02a3z\x02a4z\x02a5z\x02a6z\x02a7z\x0aresult-ptrz\x01\0\x04\0\x0fhash-one-to\
--one\x01\0\x03\x013miden:core-import/stdlib-crypto-hashes-blake3@1.0.0\x05\x03\x01\
-B\x05\x01@\x05\x06asset0v\x06asset1v\x06asset2v\x06asset3v\x0aresult-ptrz\x01\0\x04\
-\0\x09add-asset\x01\0\x04\0\x0cremove-asset\x01\0\x01@\0\0v\x04\0\x06get-id\x01\x01\
-\x03\x01\x1fmiden:core-import/account@1.0.0\x05\x04\x01B\x03\x01@\x01\x03ptrz\0z\
-\x04\0\x0aget-inputs\x01\0\x04\0\x0aget-assets\x01\0\x03\x01\x1cmiden:core-impor\
-t/note@1.0.0\x05\x05\x01B\x02\x01@\x0a\x06asset0v\x06asset1v\x06asset2v\x06asset\
-3v\x03tagv\x09note-typev\x0arecipient0v\x0arecipient1v\x0arecipient2v\x0arecipie\
-nt3v\0v\x04\0\x0bcreate-note\x01\0\x03\x01\x1amiden:core-import/tx@1.0.0\x05\x06\
-\x02\x03\0\0\x0acore-asset\x02\x03\0\0\x03tag\x02\x03\0\0\x09recipient\x02\x03\0\
-\0\x09note-type\x02\x03\0\0\x04felt\x01B\x13\x02\x03\x02\x01\x07\x04\0\x0acore-a\
-sset\x03\0\0\x02\x03\x02\x01\x08\x04\0\x03tag\x03\0\x02\x02\x03\x02\x01\x09\x04\0\
-\x09recipient\x03\0\x04\x02\x03\x02\x01\x0a\x04\0\x09note-type\x03\0\x06\x02\x03\
-\x02\x01\x0b\x04\0\x04felt\x03\0\x08\x01@\x01\x0acore-asset\x01\x01\0\x04\0\x0dr\
-eceive-asset\x01\x0a\x01@\x04\x0acore-asset\x01\x03tag\x03\x09note-type\x07\x09r\
-ecipient\x05\x01\0\x04\0\x0asend-asset\x01\x0b\x01@\x02\x01a\x09\x01b\x09\0\x09\x04\
-\0\x14test-felt-intrinsics\x01\x0c\x01p}\x01@\x01\x05input\x0d\0\x0d\x04\0\x0bte\
-st-stdlib\x01\x0e\x04\x01%miden:basic-wallet/basic-wallet@1.0.0\x05\x0c\x04\x01+\
-miden:basic-wallet/basic-wallet-world@1.0.0\x04\0\x0b\x18\x01\0\x12basic-wallet-\
-world\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.216.\
-0\x10wit-bindgen-rust\x060.31.0";
+\x03\x01&miden:core-import/intrinsics-mem@1.0.0\x05\x01\x01B\x08\x01@\x02\x01av\x01\
+bv\0v\x04\0\x03add\x01\0\x01@\x02\x01av\x01bv\0\x7f\x04\0\x02eq\x01\x01\x01@\x01\
+\x01aw\0v\x04\0\x12from-u64-unchecked\x01\x02\x01@\x02\x01av\x01bv\x01\0\x04\0\x09\
+assert-eq\x01\x03\x03\x01'miden:core-import/intrinsics-felt@1.0.0\x05\x02\x01B\x02\
+\x01@\x09\x02a0z\x02a1z\x02a2z\x02a3z\x02a4z\x02a5z\x02a6z\x02a7z\x0aresult-ptrz\
+\x01\0\x04\0\x0fhash-one-to-one\x01\0\x03\x013miden:core-import/stdlib-crypto-ha\
+shes-blake3@1.0.0\x05\x03\x01B\x05\x01@\x05\x06asset0v\x06asset1v\x06asset2v\x06\
+asset3v\x0aresult-ptrz\x01\0\x04\0\x09add-asset\x01\0\x04\0\x0cremove-asset\x01\0\
+\x01@\0\0v\x04\0\x06get-id\x01\x01\x03\x01\x1fmiden:core-import/account@1.0.0\x05\
+\x04\x01B\x03\x01@\x01\x03ptrz\0z\x04\0\x0aget-inputs\x01\0\x04\0\x0aget-assets\x01\
+\0\x03\x01\x1cmiden:core-import/note@1.0.0\x05\x05\x01B\x02\x01@\x0a\x06asset0v\x06\
+asset1v\x06asset2v\x06asset3v\x03tagv\x09note-typev\x0arecipient0v\x0arecipient1\
+v\x0arecipient2v\x0arecipient3v\0v\x04\0\x0bcreate-note\x01\0\x03\x01\x1amiden:c\
+ore-import/tx@1.0.0\x05\x06\x02\x03\0\0\x0acore-asset\x02\x03\0\0\x03tag\x02\x03\
+\0\0\x09recipient\x02\x03\0\0\x09note-type\x02\x03\0\0\x04felt\x01B\x0e\x02\x03\x02\
+\x01\x07\x04\0\x0acore-asset\x03\0\0\x02\x03\x02\x01\x08\x04\0\x03tag\x03\0\x02\x02\
+\x03\x02\x01\x09\x04\0\x09recipient\x03\0\x04\x02\x03\x02\x01\x0a\x04\0\x09note-\
+type\x03\0\x06\x02\x03\x02\x01\x0b\x04\0\x04felt\x03\0\x08\x01@\x01\x0acore-asse\
+t\x01\x01\0\x04\0\x0dreceive-asset\x01\x0a\x01@\x04\x0acore-asset\x01\x03tag\x03\
+\x09note-type\x07\x09recipient\x05\x01\0\x04\0\x0asend-asset\x01\x0b\x04\x01%mid\
+en:basic-wallet/basic-wallet@1.0.0\x05\x0c\x01B\x12\x02\x03\x02\x01\x07\x04\0\x0a\
+core-asset\x03\0\0\x02\x03\x02\x01\x08\x04\0\x03tag\x03\0\x02\x02\x03\x02\x01\x09\
+\x04\0\x09recipient\x03\0\x04\x02\x03\x02\x01\x0a\x04\0\x09note-type\x03\0\x06\x02\
+\x03\x02\x01\x0b\x04\0\x04felt\x03\0\x08\x01@\x02\x01a\x09\x01b\x09\0\x09\x04\0\x14\
+test-felt-intrinsics\x01\x0a\x01p}\x01@\x01\x05input\x0b\0\x0b\x04\0\x0btest-std\
+lib\x01\x0c\x01p\x09\x01@\x01\x05input\x0d\0\x0d\x04\0\x11process-list-felt\x01\x0e\
+\x04\x01\x1cmiden:basic-wallet/aux@1.0.0\x05\x0d\x04\x01+miden:basic-wallet/basi\
+c-wallet-world@1.0.0\x04\0\x0b\x18\x01\0\x12basic-wallet-world\x03\0\0\0G\x09pro\
+ducers\x01\x0cprocessed-by\x02\x0dwit-component\x070.216.0\x10wit-bindgen-rust\x06\
+0.31.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

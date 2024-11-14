@@ -30,7 +30,7 @@ impl fmt::Debug for InterfaceIdent {
 }
 impl fmt::Display for InterfaceIdent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "\"{}\"", self.full_name.as_str().escape_default())
+        write!(f, "{}", self.full_name.as_str().escape_default())
     }
 }
 
@@ -72,7 +72,6 @@ impl PrettyPrint for InterfaceFunctionIdent {
         flatten(
             const_text("(")
                 + display(self.interface)
-                + const_text(" ")
                 + text(format!("#{}", self.function))
                 + const_text(")"),
         )

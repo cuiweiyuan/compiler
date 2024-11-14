@@ -4,7 +4,7 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 
 #[link(wasm_import_module = "miden:core-import/intrinsics-felt@1.0.0")]
 extern "C" {
-    #[link_name = "from_u64_unchecked"]
+    #[link_name = "from-u64-unchecked"]
     fn extern_from_u64_unchecked(value: u64) -> Felt;
 
     #[link_name = "as_u64"]
@@ -49,7 +49,7 @@ extern "C" {
     #[link_name = "le"]
     fn extern_le(a: Felt, b: Felt) -> i32;
 
-    #[link_name = "is_odd"]
+    #[link_name = "is-odd"]
     fn extern_is_odd(a: Felt) -> i32;
 
     #[link_name = "assert"]
@@ -58,7 +58,7 @@ extern "C" {
     #[link_name = "assertz"]
     fn extern_assertz(a: Felt);
 
-    #[link_name = "assert_eq"]
+    #[link_name = "assert-eq"]
     fn extern_assert_eq(a: Felt, b: Felt);
 }
 

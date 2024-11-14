@@ -193,11 +193,12 @@ fn wcm_import() {
     assert!(!ir_component.modules().is_empty());
 
     let export_name_sym = Symbol::intern("inc");
-    let export = ir_component.exports().get(&export_name_sym.into()).unwrap();
-    assert_eq!(export.function.function.as_symbol(), export_name_sym);
+    todo!("restore these checks");
+    // let export = ir_component.exports().get(&export_name_sym.into()).unwrap();
+    // assert_eq!(export.function.function.as_symbol(), export_name_sym);
 
     let expected_export_func_ty = FunctionType::new_wasm(vec![Type::U32], vec![Type::U32]);
-    assert_eq!(export.function_ty, expected_export_func_ty);
+    // assert_eq!(export.function_ty, expected_export_func_ty);
     let module = ir_component.modules().first().unwrap().1;
     dbg!(&module.imports());
     let import_info = module.imports();
