@@ -199,6 +199,13 @@ impl Module {
         index.index() < self.num_imported_funcs
     }
 
+    pub fn is_exported_function(&self, index: &FuncIndex) -> bool {
+        self.exports.values().any(|export| match export {
+            EntityIndex::Function(func_id) => func_id == index,
+            _ => false,
+        })
+    }
+
     /// Convert a `DefinedTableIndex` into a `TableIndex`.
     #[inline]
     pub fn table_index(&self, defined_table: DefinedTableIndex) -> TableIndex {

@@ -124,7 +124,12 @@ pub fn build_ir_module(
         let func_name = &parsed_module.module.func_name(*func_index);
         let wasm_func_type = module_types[func_type.signature].clone();
         let ir_func_type = ir_func_type(&wasm_func_type, &session.diagnostics)?;
-        let sig = ir_func_sig(&ir_func_type, CallConv::SystemV, Linkage::External);
+        let linkage = if parsed_module.module.is_exported_function(func_index) {
+            Linkage::External
+        } else {
+            Linkage::Internal
+        };
+        let sig = ir_func_sig(&ir_func_type, CallConv::SystemV, linkage);
         let mut module_func_builder = module_builder.function(func_name.as_str(), sig.clone())?;
         let FunctionBodyData { validator, body } = body_data;
         let mut func_validator = validator.into_validator(Default::default());
