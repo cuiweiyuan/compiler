@@ -55,7 +55,7 @@ pub fn run_noninteractively(
 
     println!(
         "Executed program with hash {} in {}",
-        state.package.digest.to_hex(),
+        state.package.digest().to_hex(),
         HumanDuration::from(state.execution_duration),
     );
 

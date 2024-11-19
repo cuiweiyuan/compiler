@@ -56,17 +56,19 @@ impl DebuggerHost {
 }
 
 impl Host for DebuggerHost {
-    fn get_advice<P: ProcessState>(
+    type AdviceProvider = MemAdviceProvider;
+
+    fn get_advice(
         &mut self,
-        process: &P,
+        process: ProcessState,
         extractor: AdviceExtractor,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.get_advice(process, &extractor)
     }
 
-    fn set_advice<P: ProcessState>(
+    fn set_advice(
         &mut self,
-        process: &P,
+        process: ProcessState,
         injector: AdviceInjector,
     ) -> Result<HostResponse, ExecutionError> {
         self.adv_provider.set_advice(process, &injector)
@@ -76,9 +78,9 @@ impl Host for DebuggerHost {
         self.store.get(node_digest)
     }
 
-    fn on_trace<S: ProcessState>(
+    fn on_trace(
         &mut self,
-        process: &S,
+        process: ProcessState,
         trace_id: u32,
     ) -> Result<HostResponse, ExecutionError> {
         let event = TraceEvent::from(trace_id);
@@ -91,7 +93,7 @@ impl Host for DebuggerHost {
         Ok(HostResponse::None)
     }
 
-    fn on_assert_failed<S: ProcessState>(&mut self, process: &S, err_code: u32) -> ExecutionError {
+    fn on_assert_failed(&mut self, process: ProcessState, err_code: u32) -> ExecutionError {
         let clk = process.clk();
         if let Some(handler) = self.on_assert_failed.as_mut() {
             handler(clk, TraceEvent::AssertionFailed(core::num::NonZeroU32::new(err_code)));
@@ -109,5 +111,13 @@ impl Host for DebuggerHost {
             err_code,
             err_msg,
         }
+    }
+
+    fn advice_provider(&self) -> &Self::AdviceProvider {
+        &self.adv_provider
+    }
+
+    fn advice_provider_mut(&mut self) -> &mut Self::AdviceProvider {
+        &mut self.adv_provider
     }
 }

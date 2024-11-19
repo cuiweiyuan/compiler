@@ -71,7 +71,6 @@ impl Stage for AssembleStage {
 
 fn build_package(mast: MastArtifact, masm: &MasmArtifact, session: &Session) -> Package {
     let name = session.name.clone();
-    let digest = mast.digest();
 
     let mut dependencies = Vec::new();
     for link_lib in session.options.link_libraries.iter() {
@@ -97,12 +96,6 @@ fn build_package(mast: MastArtifact, masm: &MasmArtifact, session: &Session) -> 
         dependencies,
     };
 
-    // Gater all of the rodata segments for this package
-    let rodata = match masm {
-        MasmArtifact::Executable(ref prog) => prog.rodatas().to_vec(),
-        MasmArtifact::Library(ref lib) => lib.rodatas().to_vec(),
-    };
-
     // Gather all of the procedure metadata for exports of this package
     if let MastArtifact::Library(ref lib) = mast {
         let MasmArtifact::Library(ref _masm_lib) = masm else {
@@ -121,9 +114,7 @@ fn build_package(mast: MastArtifact, masm: &MasmArtifact, session: &Session) -> 
 
     miden_package::Package {
         name,
-        digest,
         mast,
-        rodata: rodata.into_iter().map(Into::into).collect(),
         manifest,
     }
 }

@@ -46,7 +46,7 @@ impl Rodata {
     /// The resulting felts will be in padded out to the nearest number of words, i.e. if the data
     /// only takes up 3 felts worth of bytes, then the resulting `Vec` will contain 4 felts, so that
     /// the total size is a valid number of words.
-    pub fn to_elements(&self) -> Result<Vec<miden_processor::Felt>, String> {
+    pub fn to_elements(&self) -> Vec<miden_processor::Felt> {
         use miden_core::FieldElement;
         use miden_processor::Felt;
 
@@ -65,26 +65,6 @@ impl Rodata {
         let padding = (self.size_in_words() * 4).abs_diff(felts.len());
         felts.resize(felts.len() + padding, Felt::ZERO);
 
-        Ok(felts)
-    }
-}
-
-impl From<miden_package::Rodata> for Rodata {
-    fn from(pkg_rodata: miden_package::Rodata) -> Self {
-        Rodata {
-            digest: pkg_rodata.digest,
-            start: pkg_rodata.start.into(),
-            data: Arc::new(pkg_rodata.data.into()),
-        }
-    }
-}
-
-impl From<Rodata> for miden_package::Rodata {
-    fn from(rodata: Rodata) -> Self {
-        miden_package::Rodata {
-            digest: rodata.digest,
-            start: rodata.start.into(),
-            data: <midenc_hir::ConstantData as Clone>::clone(&rodata.data).into(),
-        }
+        felts
     }
 }

@@ -55,7 +55,7 @@ impl Executor {
         log::debug!(
             "creating executor for package '{}' (digest={})",
             package.name,
-            DisplayHex::new(&package.digest.as_bytes())
+            DisplayHex::new(&package.digest().as_bytes())
         );
 
         let mut exec = Self::new(args);
@@ -82,10 +82,6 @@ impl Executor {
                 None => panic!("{:?} not found in resolver", dep),
             }
         }
-
-        let advice_map = package.advice_map();
-        let advice_inputs = AdviceInputs::default().with_map(advice_map);
-        exec.with_advice_inputs(advice_inputs);
 
         log::debug!("executor created");
 
@@ -135,9 +131,10 @@ impl Executor {
             assertion_events.borrow_mut().insert(clk, event);
         });
 
-        let mut process = Process::new_debug(program.kernel().clone(), self.stack, host);
-        let root_context = process.ctx();
-        let result = process.execute(program);
+        let mut process = Process::new_debug(program.kernel().clone(), self.stack);
+        let process_state: ProcessState = (&process).into();
+        let root_context = process_state.ctx();
+        let result = process.execute(program, &mut host);
         let mut iter = VmStateIterator::new(process, result.clone());
         let mut callstack = CallStack::new(trace_events);
         DebugExecutor {

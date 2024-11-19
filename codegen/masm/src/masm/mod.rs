@@ -110,24 +110,3 @@ impl NativePtr {
         (self.waddr * 16) + (self.index as u32 * 4) + self.offset as u32
     }
 }
-
-impl From<miden_package::PtrDesc> for NativePtr {
-    fn from(value: miden_package::PtrDesc) -> Self {
-        NativePtr {
-            waddr: value.waddr,
-            index: value.index,
-            offset: value.offset,
-            addrspace: midenc_hir::AddressSpace::Unknown,
-        }
-    }
-}
-
-impl From<NativePtr> for miden_package::PtrDesc {
-    fn from(value: NativePtr) -> Self {
-        miden_package::PtrDesc {
-            waddr: value.waddr,
-            index: value.index,
-            offset: value.offset,
-        }
-    }
-}

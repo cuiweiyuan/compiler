@@ -33,7 +33,7 @@ pub fn compile(session: Rc<Session>) -> CompilerResult<()> {
             log::info!(
                 "succesfully assembled mast package '{}' with digest {}",
                 package.name,
-                DisplayHex::new(&package.digest.as_bytes())
+                DisplayHex::new(&package.digest().as_bytes())
             );
             session
                 .emit(OutputMode::Text, package)

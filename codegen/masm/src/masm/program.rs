@@ -5,7 +5,7 @@ use miden_assembly::{
     ast::{ModuleKind, ProcedureName},
     KernelLibrary, Library as CompiledLibrary, LibraryNamespace,
 };
-use miden_core::crypto::hash::Rpo256;
+use miden_core::{crypto::hash::Rpo256, AdviceMap};
 use midenc_hir::{
     self as hir, diagnostics::Report, DataSegmentTable, Felt, FieldElement, FunctionIdent,
     GlobalVariableTable, Ident, SourceSpan,
@@ -279,7 +279,14 @@ impl Program {
         let emit_test_harness = session.get_flag("test_harness");
         let main = self.generate_main(self.entrypoint, emit_test_harness);
         let main = main.to_ast(debug_mode).map(Box::new)?;
-        assembler.assemble_program(main).map(Arc::new)
+        let program = assembler.assemble_program(main)?;
+        let advice_map: AdviceMap = self
+            .rodatas()
+            .iter()
+            .map(|rodata| (rodata.digest, rodata.to_elements()))
+            .collect();
+        let new_prog = program.with_advice_map(advice_map);
+        Ok(Arc::new(new_prog))
     }
 
     pub(crate) fn library(&self) -> &Library {
@@ -486,7 +493,13 @@ impl Library {
             let module = module.to_ast(debug_mode).map(Box::new)?;
             modules.push(module);
         }
-        assembler.assemble_library(modules).map(Arc::new)
+        let lib = assembler.assemble_library(modules)?;
+        let advice_map: AdviceMap = self
+            .rodatas()
+            .iter()
+            .map(|rodata| (rodata.digest, rodata.to_elements()))
+            .collect();
+        Ok(Arc::new(lib.with_advice_map(advice_map)))
     }
 }
 
