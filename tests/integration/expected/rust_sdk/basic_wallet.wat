@@ -66,10 +66,11 @@
     (type (;9;) (func (param f32 f32 f32 f32)))
     (type (;10;) (func (param f32 f32 f32 f32 f32 f32 f32 f32 f32 f32)))
     (type (;11;) (func (param i32)))
-    (type (;12;) (func (param i32 i32 i32) (result i32)))
-    (type (;13;) (func (param i32 i32)))
-    (type (;14;) (func (param i32 f32 f32 i32) (result f32)))
-    (type (;15;) (func (param i32 i32 i32 i32)))
+    (type (;12;) (func (param f32 f32 f32 f32) (result i32)))
+    (type (;13;) (func (param i32 i32 i32) (result i32)))
+    (type (;14;) (func (param i32 i32)))
+    (type (;15;) (func (param i32 f32 f32 i32) (result f32)))
+    (type (;16;) (func (param i32 i32 i32 i32)))
     (import "miden:core-import/intrinsics-felt@1.0.0" "add" (func $miden_stdlib_sys::intrinsics::felt::extern_add (;0;) (type 0)))
     (import "miden:core-import/stdlib-crypto-hashes-blake3@1.0.0" "hash-one-to-one" (func $miden_stdlib_sys::stdlib::crypto::hashes::extern_blake3_hash_1to1 (;1;) (type 1)))
     (import "miden:core-import/intrinsics-mem@1.0.0" "heap-base" (func $miden_sdk_alloc::heap_base (;2;) (type 2)))
@@ -79,7 +80,7 @@
     (func $__wasm_call_ctors (;6;) (type 5))
     (func $basic_wallet::bindings::__link_custom_section_describing_imports (;7;) (type 5))
     (func $__rust_alloc (;8;) (type 6) (param i32 i32) (result i32)
-      i32.const 1048624
+      i32.const 1048632
       local.get 1
       local.get 0
       call $<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc
@@ -87,7 +88,7 @@
     (func $__rust_dealloc (;9;) (type 7) (param i32 i32 i32))
     (func $__rust_realloc (;10;) (type 8) (param i32 i32 i32 i32) (result i32)
       block ;; label = @1
-        i32.const 1048624
+        i32.const 1048632
         local.get 2
         local.get 3
         call $<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc
@@ -108,7 +109,7 @@
     )
     (func $__rust_alloc_zeroed (;11;) (type 6) (param i32 i32) (result i32)
       block ;; label = @1
-        i32.const 1048624
+        i32.const 1048632
         local.get 1
         local.get 0
         call $<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc
@@ -360,14 +361,18 @@
       unreachable
     )
     (func $cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt (;17;) (type 11) (param i32))
-    (func $cabi_realloc_wit_bindgen_0_28_0 (;18;) (type 8) (param i32 i32 i32 i32) (result i32)
+    (func $miden:basic-wallet/aux@1.0.0#process-core-asset (;18;) (type 12) (param f32 f32 f32 f32) (result i32)
+      call $wit_bindgen_rt::run_ctors_once
+      unreachable
+    )
+    (func $cabi_realloc_wit_bindgen_0_28_0 (;19;) (type 8) (param i32 i32 i32 i32) (result i32)
       local.get 0
       local.get 1
       local.get 2
       local.get 3
       call $wit_bindgen_rt::cabi_realloc
     )
-    (func $wit_bindgen_rt::cabi_realloc (;19;) (type 8) (param i32 i32 i32 i32) (result i32)
+    (func $wit_bindgen_rt::cabi_realloc (;20;) (type 8) (param i32 i32 i32 i32) (result i32)
       block ;; label = @1
         block ;; label = @2
           block ;; label = @3
@@ -377,7 +382,7 @@
             i32.eqz
             br_if 2 (;@1;)
             i32.const 0
-            i32.load8_u offset=1048628
+            i32.load8_u offset=1048636
             drop
             local.get 3
             local.get 2
@@ -398,18 +403,18 @@
       end
       local.get 2
     )
-    (func $wit_bindgen_rt::run_ctors_once (;20;) (type 5)
+    (func $wit_bindgen_rt::run_ctors_once (;21;) (type 5)
       block ;; label = @1
         i32.const 0
-        i32.load8_u offset=1048629
+        i32.load8_u offset=1048637
         br_if 0 (;@1;)
         call $__wasm_call_ctors
         i32.const 0
         i32.const 1
-        i32.store8 offset=1048629
+        i32.store8 offset=1048637
       end
     )
-    (func $<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc (;21;) (type 12) (param i32 i32 i32) (result i32)
+    (func $<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc (;22;) (type 13) (param i32 i32 i32) (result i32)
       (local i32 i32)
       block ;; label = @1
         local.get 1
@@ -477,7 +482,7 @@
       end
       unreachable
     )
-    (func $miden_base_sys::bindings::account::add_asset (;22;) (type 13) (param i32 i32)
+    (func $miden_base_sys::bindings::account::add_asset (;23;) (type 14) (param i32 i32)
       local.get 1
       f32.load
       local.get 1
@@ -489,7 +494,7 @@
       local.get 0
       call $miden_base_sys::bindings::account::extern_account_add_asset
     )
-    (func $miden_base_sys::bindings::account::remove_asset (;23;) (type 13) (param i32 i32)
+    (func $miden_base_sys::bindings::account::remove_asset (;24;) (type 14) (param i32 i32)
       local.get 1
       f32.load
       local.get 1
@@ -501,7 +506,7 @@
       local.get 0
       call $miden_base_sys::bindings::account::extern_account_remove_asset
     )
-    (func $miden_base_sys::bindings::tx::create_note (;24;) (type 14) (param i32 f32 f32 i32) (result f32)
+    (func $miden_base_sys::bindings::tx::create_note (;25;) (type 15) (param i32 f32 f32 i32) (result f32)
       local.get 0
       f32.load
       local.get 0
@@ -522,7 +527,7 @@
       f32.load offset=12
       call $miden_base_sys::bindings::tx::extern_tx_create_note
     )
-    (func $alloc::vec::Vec<T,A>::into_boxed_slice (;25;) (type 13) (param i32 i32)
+    (func $alloc::vec::Vec<T,A>::into_boxed_slice (;26;) (type 14) (param i32 i32)
       (local i32 i32)
       global.get $__stack_pointer
       i32.const 16
@@ -568,8 +573,8 @@
       end
       unreachable
     )
-    (func $<alloc::vec::Vec<T,A> as core::ops::drop::Drop>::drop (;26;) (type 11) (param i32))
-    (func $<alloc::raw_vec::RawVec<T,A> as core::ops::drop::Drop>::drop (;27;) (type 11) (param i32)
+    (func $<alloc::vec::Vec<T,A> as core::ops::drop::Drop>::drop (;27;) (type 11) (param i32))
+    (func $<alloc::raw_vec::RawVec<T,A> as core::ops::drop::Drop>::drop (;28;) (type 11) (param i32)
       (local i32)
       block ;; label = @1
         local.get 0
@@ -584,7 +589,7 @@
         call $<alloc::alloc::Global as core::alloc::Allocator>::deallocate
       end
     )
-    (func $alloc::raw_vec::RawVec<T,A>::try_allocate_in (;28;) (type 7) (param i32 i32 i32)
+    (func $alloc::raw_vec::RawVec<T,A>::try_allocate_in (;29;) (type 7) (param i32 i32 i32)
       (local i32 i32)
       global.get $__stack_pointer
       i32.const 16
@@ -670,7 +675,7 @@
       i32.add
       global.set $__stack_pointer
     )
-    (func $<alloc::alloc::Global as core::alloc::Allocator>::allocate (;29;) (type 7) (param i32 i32 i32)
+    (func $<alloc::alloc::Global as core::alloc::Allocator>::allocate (;30;) (type 7) (param i32 i32 i32)
       (local i32)
       global.get $__stack_pointer
       i32.const 16
@@ -699,7 +704,7 @@
       i32.add
       global.set $__stack_pointer
     )
-    (func $alloc::alloc::Global::alloc_impl (;30;) (type 15) (param i32 i32 i32 i32)
+    (func $alloc::alloc::Global::alloc_impl (;31;) (type 16) (param i32 i32 i32 i32)
       block ;; label = @1
         local.get 2
         i32.eqz
@@ -708,7 +713,7 @@
           local.get 3
           br_if 0 (;@2;)
           i32.const 0
-          i32.load8_u offset=1048628
+          i32.load8_u offset=1048636
           drop
           local.get 2
           local.get 1
@@ -728,7 +733,7 @@
       local.get 1
       i32.store
     )
-    (func $alloc::raw_vec::RawVec<T,A>::shrink_unchecked (;31;) (type 7) (param i32 i32 i32)
+    (func $alloc::raw_vec::RawVec<T,A>::shrink_unchecked (;32;) (type 7) (param i32 i32 i32)
       (local i32 i32 i32 i32)
       i32.const -2147483647
       local.set 3
@@ -780,7 +785,7 @@
       local.get 3
       i32.store
     )
-    (func $<alloc::alloc::Global as core::alloc::Allocator>::deallocate (;32;) (type 7) (param i32 i32 i32)
+    (func $<alloc::alloc::Global as core::alloc::Allocator>::deallocate (;33;) (type 7) (param i32 i32 i32)
       block ;; label = @1
         local.get 2
         i32.eqz
@@ -791,10 +796,10 @@
         call $__rust_dealloc
       end
     )
-    (func $alloc::raw_vec::handle_error (;33;) (type 13) (param i32 i32)
+    (func $alloc::raw_vec::handle_error (;34;) (type 14) (param i32 i32)
       unreachable
     )
-    (func $cabi_realloc (;34;) (type 8) (param i32 i32 i32 i32) (result i32)
+    (func $cabi_realloc (;35;) (type 8) (param i32 i32 i32 i32) (result i32)
       local.get 0
       local.get 1
       local.get 2
@@ -811,6 +816,7 @@
     (export "miden:basic-wallet/aux@1.0.0#test-stdlib" (func $miden:basic-wallet/aux@1.0.0#test-stdlib))
     (export "miden:basic-wallet/aux@1.0.0#process-list-felt" (func $miden:basic-wallet/aux@1.0.0#process-list-felt))
     (export "cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt" (func $cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt))
+    (export "miden:basic-wallet/aux@1.0.0#process-core-asset" (func $miden:basic-wallet/aux@1.0.0#process-core-asset))
     (export "cabi_post_miden:basic-wallet/aux@1.0.0#test-stdlib" (func $cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt))
     (export "cabi_realloc_wit_bindgen_0_28_0" (func $cabi_realloc_wit_bindgen_0_28_0))
     (export "cabi_realloc" (func $cabi_realloc))
@@ -933,6 +939,9 @@
   (alias core export 5 "miden:basic-wallet/aux@1.0.0#process-list-felt" (core func (;12;)))
   (alias core export 5 "cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt" (core func (;13;)))
   (func (;10;) (type 23) (canon lift (core func 12) (memory 0) (realloc 6) (post-return 13)))
+  (type (;24;) (func (param "input" 6) (result 6)))
+  (alias core export 5 "miden:basic-wallet/aux@1.0.0#process-core-asset" (core func (;14;)))
+  (func (;11;) (type 24) (canon lift (core func 14) (memory 0)))
   (component (;1;)
     (type (;0;) (record (field "inner" float32)))
     (import "import-type-felt" (type (;1;) (eq 0)))
@@ -956,24 +965,30 @@
     (type (;17;) (list 13))
     (type (;18;) (func (param "input" 17) (result 17)))
     (import "import-func-process-list-felt" (func (;2;) (type 18)))
-    (export (;19;) "core-asset" (type 6))
-    (export (;20;) "tag" (type 8))
-    (export (;21;) "recipient" (type 10))
-    (export (;22;) "note-type" (type 12))
-    (export (;23;) "felt" (type 1))
-    (type (;24;) (func (param "a" 23) (param "b" 23) (result 23)))
-    (export (;3;) "test-felt-intrinsics" (func 0) (func (type 24)))
-    (type (;25;) (list u8))
-    (type (;26;) (func (param "input" 25) (result 25)))
-    (export (;4;) "test-stdlib" (func 1) (func (type 26)))
-    (type (;27;) (list 23))
+    (import "import-type-core-asset0" (type (;19;) (eq 6)))
+    (type (;20;) (func (param "input" 19) (result 19)))
+    (import "import-func-process-core-asset" (func (;3;) (type 20)))
+    (export (;21;) "core-asset" (type 6))
+    (export (;22;) "tag" (type 8))
+    (export (;23;) "recipient" (type 10))
+    (export (;24;) "note-type" (type 12))
+    (export (;25;) "felt" (type 1))
+    (type (;26;) (func (param "a" 25) (param "b" 25) (result 25)))
+    (export (;4;) "test-felt-intrinsics" (func 0) (func (type 26)))
+    (type (;27;) (list u8))
     (type (;28;) (func (param "input" 27) (result 27)))
-    (export (;5;) "process-list-felt" (func 2) (func (type 28)))
+    (export (;5;) "test-stdlib" (func 1) (func (type 28)))
+    (type (;29;) (list 25))
+    (type (;30;) (func (param "input" 29) (result 29)))
+    (export (;6;) "process-list-felt" (func 2) (func (type 30)))
+    (type (;31;) (func (param "input" 21) (result 21)))
+    (export (;7;) "process-core-asset" (func 3) (func (type 31)))
   )
   (instance (;8;) (instantiate 1
       (with "import-func-test-felt-intrinsics" (func 8))
       (with "import-func-test-stdlib" (func 9))
       (with "import-func-process-list-felt" (func 10))
+      (with "import-func-process-core-asset" (func 11))
       (with "import-type-felt" (type 12))
       (with "import-type-word" (type 13))
       (with "import-type-core-asset" (type 14))
@@ -981,6 +996,7 @@
       (with "import-type-recipient" (type 16))
       (with "import-type-note-type" (type 17))
       (with "import-type-felt0" (type 18))
+      (with "import-type-core-asset0" (type 6))
     )
   )
   (export (;9;) "miden:basic-wallet/aux@1.0.0" (instance 8))

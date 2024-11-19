@@ -14,6 +14,7 @@ interface aux {
     test-felt-intrinsics: func(a: felt, b: felt) -> felt;
     test-stdlib: func(input: list<u8>) -> list<u8>;
     process-list-felt: func(input: list<felt>) -> list<felt>;
+    process-core-asset: func(input: core-asset) -> core-asset;
 }
 
 

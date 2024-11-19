@@ -52,4 +52,8 @@ impl aux::Guest for MyAccount {
         // input.into_iter().map(|felt| felt + felt!(1)).collect()
         todo!()
     }
+
+    fn process_core_asset(input: CoreAsset) -> CoreAsset {
+        todo!()
+    }
 }

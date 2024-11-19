@@ -410,7 +410,7 @@ end
 
 proc."wit_bindgen_rt::run_ctors_once"
     push.0
-    add.1048629
+    add.1048637
     u32assert
     dup.0
     u32mod.16
@@ -432,7 +432,7 @@ proc."wit_bindgen_rt::run_ctors_once"
         push.128
         u32and
         push.0
-        add.1048629
+        add.1048637
         u32assert
         dup.0
         u32mod.16
@@ -1902,7 +1902,7 @@ end
 
 
 proc."__rust_alloc"
-    push.1048624
+    push.1048632
     movup.2
     swap.1
     exec."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
@@ -1910,7 +1910,7 @@ end
 
 
 proc."__rust_alloc_zeroed"
-    push.1048624
+    push.1048632
     dup.1
     swap.2
     swap.3
@@ -1972,7 +1972,7 @@ end
 
 
 proc."__rust_realloc"
-    push.1048624
+    push.1048632
     dup.4
     swap.2
     swap.4
@@ -2072,6 +2072,11 @@ end
 
 export.cabi_realloc_wit_bindgen_0_28_0
     exec."wit_bindgen_rt::cabi_realloc"
+end
+
+
+export."miden:basic-wallet/aux@1.0.0#process-core-asset"
+    exec."wit_bindgen_rt::run_ctors_once" push.0 assert
 end
 
 

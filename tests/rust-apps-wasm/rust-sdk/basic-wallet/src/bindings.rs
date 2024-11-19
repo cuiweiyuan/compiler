@@ -344,6 +344,39 @@ pub mod exports {
                     let len2 = l1;
                     _rt::cabi_dealloc(base2, len2 * 4, 4);
                 }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_process_core_asset_cabi<T: Guest>(
+                    arg0: f32,
+                    arg1: f32,
+                    arg2: f32,
+                    arg3: f32,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
+                    let result0 = T::process_core_asset(miden::CoreAsset {
+                        inner: miden::Word {
+                            inner: (
+                                miden::Felt { inner: arg0 },
+                                miden::Felt { inner: arg1 },
+                                miden::Felt { inner: arg2 },
+                                miden::Felt { inner: arg3 },
+                            ),
+                        },
+                    });
+                    let ptr1 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    let miden::CoreAsset { inner: inner2 } = result0;
+                    let miden::Word { inner: inner3 } = inner2;
+                    let (t4_0, t4_1, t4_2, t4_3) = inner3;
+                    let miden::Felt { inner: inner5 } = t4_0;
+                    *ptr1.add(0).cast::<f32>() = _rt::as_f32(inner5);
+                    let miden::Felt { inner: inner6 } = t4_1;
+                    *ptr1.add(4).cast::<f32>() = _rt::as_f32(inner6);
+                    let miden::Felt { inner: inner7 } = t4_2;
+                    *ptr1.add(8).cast::<f32>() = _rt::as_f32(inner7);
+                    let miden::Felt { inner: inner8 } = t4_3;
+                    *ptr1.add(12).cast::<f32>() = _rt::as_f32(inner8);
+                    ptr1
+                }
                 pub trait Guest {
                     fn test_felt_intrinsics(
                         a: miden::Felt,
@@ -353,6 +386,7 @@ pub mod exports {
                     fn process_list_felt(
                         input: _rt::Vec<miden::Felt>,
                     ) -> _rt::Vec<miden::Felt>;
+                    fn process_core_asset(input: miden::CoreAsset) -> miden::CoreAsset;
                 }
                 #[doc(hidden)]
                 macro_rules! __export_miden_basic_wallet_aux_1_0_0_cabi {
@@ -377,15 +411,20 @@ pub mod exports {
                         "cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt"]
                         unsafe extern "C" fn _post_return_process_list_felt(arg0 : * mut
                         u8,) { $($path_to_types)*:: __post_return_process_list_felt::<$ty
-                        > (arg0) } };
+                        > (arg0) } #[export_name =
+                        "miden:basic-wallet/aux@1.0.0#process-core-asset"] unsafe extern
+                        "C" fn export_process_core_asset(arg0 : f32, arg1 : f32, arg2 :
+                        f32, arg3 : f32,) -> * mut u8 { $($path_to_types)*::
+                        _export_process_core_asset_cabi::<$ty > (arg0, arg1, arg2, arg3)
+                        } };
                     };
                 }
                 #[doc(hidden)]
                 pub(crate) use __export_miden_basic_wallet_aux_1_0_0_cabi;
                 #[repr(align(4))]
-                struct _RetArea([::core::mem::MaybeUninit<u8>; 8]);
+                struct _RetArea([::core::mem::MaybeUninit<u8>; 16]);
                 static mut _RET_AREA: _RetArea = _RetArea(
-                    [::core::mem::MaybeUninit::uninit(); 8],
+                    [::core::mem::MaybeUninit::uninit(); 16],
                 );
             }
         }
@@ -553,8 +592,8 @@ pub(crate) use __export_basic_wallet_world_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.31.0:miden:basic-wallet@1.0.0:basic-wallet-world:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1828] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x9b\x0d\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1863] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xbe\x0d\x01A\x02\x01\
 A\x17\x01B\x1f\x01r\x01\x05innerv\x04\0\x04felt\x03\0\0\x01o\x04\x01\x01\x01\x01\
 \x01r\x01\x05inner\x02\x04\0\x04word\x03\0\x03\x01r\x01\x05inner\x01\x04\0\x0aac\
 count-id\x03\0\x05\x01r\x01\x05inner\x04\x04\0\x09recipient\x03\0\x07\x01r\x01\x05\
@@ -586,16 +625,16 @@ ore-import/tx@1.0.0\x05\x06\x02\x03\0\0\x0acore-asset\x02\x03\0\0\x03tag\x02\x03
 type\x03\0\x06\x02\x03\x02\x01\x0b\x04\0\x04felt\x03\0\x08\x01@\x01\x0acore-asse\
 t\x01\x01\0\x04\0\x0dreceive-asset\x01\x0a\x01@\x04\x0acore-asset\x01\x03tag\x03\
 \x09note-type\x07\x09recipient\x05\x01\0\x04\0\x0asend-asset\x01\x0b\x04\x01%mid\
-en:basic-wallet/basic-wallet@1.0.0\x05\x0c\x01B\x12\x02\x03\x02\x01\x07\x04\0\x0a\
+en:basic-wallet/basic-wallet@1.0.0\x05\x0c\x01B\x14\x02\x03\x02\x01\x07\x04\0\x0a\
 core-asset\x03\0\0\x02\x03\x02\x01\x08\x04\0\x03tag\x03\0\x02\x02\x03\x02\x01\x09\
 \x04\0\x09recipient\x03\0\x04\x02\x03\x02\x01\x0a\x04\0\x09note-type\x03\0\x06\x02\
 \x03\x02\x01\x0b\x04\0\x04felt\x03\0\x08\x01@\x02\x01a\x09\x01b\x09\0\x09\x04\0\x14\
 test-felt-intrinsics\x01\x0a\x01p}\x01@\x01\x05input\x0b\0\x0b\x04\0\x0btest-std\
 lib\x01\x0c\x01p\x09\x01@\x01\x05input\x0d\0\x0d\x04\0\x11process-list-felt\x01\x0e\
-\x04\x01\x1cmiden:basic-wallet/aux@1.0.0\x05\x0d\x04\x01+miden:basic-wallet/basi\
-c-wallet-world@1.0.0\x04\0\x0b\x18\x01\0\x12basic-wallet-world\x03\0\0\0G\x09pro\
-ducers\x01\x0cprocessed-by\x02\x0dwit-component\x070.216.0\x10wit-bindgen-rust\x06\
-0.31.0";
+\x01@\x01\x05input\x01\0\x01\x04\0\x12process-core-asset\x01\x0f\x04\x01\x1cmide\
+n:basic-wallet/aux@1.0.0\x05\x0d\x04\x01+miden:basic-wallet/basic-wallet-world@1\
+.0.0\x04\0\x0b\x18\x01\0\x12basic-wallet-world\x03\0\0\0G\x09producers\x01\x0cpr\
+ocessed-by\x02\x0dwit-component\x070.216.0\x10wit-bindgen-rust\x060.31.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {
