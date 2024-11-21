@@ -251,18 +251,26 @@ impl Program {
         let mut assembler =
             Assembler::new(session.source_manager.clone()).with_debug_mode(debug_mode);
 
+        let mut lib_modules = Vec::new();
         // Link extra libraries
         for library in self.library.libraries.iter() {
-            if log::log_enabled!(log::Level::Debug) {
-                for module in library.module_infos() {
-                    log::debug!("registering '{}' with assembler", module.path());
-                }
+            for module in library.module_infos() {
+                log::debug!("registering '{}' with assembler", module.path());
+                lib_modules.push(module.path().to_string());
             }
             assembler.add_library(library)?;
         }
 
         // Assemble library
         for module in self.library.modules.iter() {
+            if lib_modules.contains(&module.id.to_string()) {
+                log::warn!(
+                    "module '{}' is already registered with the assembler as library's module, \
+                     skipping",
+                    module.id
+                );
+                continue;
+            }
             log::debug!("adding '{}' to assembler", module.id.as_str());
             let kind = module.kind;
             let module = module.to_ast(debug_mode).map(Box::new)?;
@@ -476,12 +484,12 @@ impl Library {
         let mut assembler =
             Assembler::new(session.source_manager.clone()).with_debug_mode(debug_mode);
 
+        let mut lib_modules = Vec::new();
         // Link extra libraries
         for library in self.libraries.iter() {
-            if log::log_enabled!(log::Level::Debug) {
-                for module in library.module_infos() {
-                    log::debug!("registering '{}' with assembler", module.path());
-                }
+            for module in library.module_infos() {
+                log::debug!("registering '{}' with assembler", module.path());
+                lib_modules.push(module.path().to_string());
             }
             assembler.add_library(library)?;
         }
@@ -489,10 +497,20 @@ impl Library {
         // Assemble library
         let mut modules = Vec::with_capacity(self.modules.len());
         for module in self.modules.iter() {
+            let module_id = module.id.as_str();
+            if lib_modules.contains(&module_id.to_string()) {
+                log::warn!(
+                    "module '{}' is already registered with the assembler as library's module, \
+                     skipping",
+                    module_id
+                );
+                continue;
+            }
             log::debug!("adding '{}' to assembler", module.id.as_str());
             let module = module.to_ast(debug_mode).map(Box::new)?;
             modules.push(module);
         }
+        // dbg!(&modules);
         let lib = assembler.assemble_library(modules)?;
         let advice_map: AdviceMap = self
             .rodatas()
