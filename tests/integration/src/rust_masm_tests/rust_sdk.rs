@@ -92,6 +92,8 @@ fn rust_sdk_p2id_note_script() {
         "../rust-apps-wasm/rust-sdk/p2id-note",
         config,
         [
+            "-l".into(),
+            "std".into(),
             "--link-library".into(),
             masp_path.into_os_string().into_string().unwrap().into(),
         ],
