@@ -95,13 +95,13 @@ miden-parsing = "0.1"
 # miden-stdlib = { version = "0.11.0", path = "../vm-aux/stdlib" }
 # miden-package = { version = "0.11.0", path = "../vm-aux/package" }
 
-miden-assembly = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
-miden-core = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
-miden-processor = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
-miden-stdlib = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293", features = [
+miden-assembly = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "75bd636a6b83fd6cb134b0981663aa28e49a811c" }
+miden-core = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "75bd636a6b83fd6cb134b0981663aa28e49a811c" }
+miden-processor = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "75bd636a6b83fd6cb134b0981663aa28e49a811c" }
+miden-stdlib = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "75bd636a6b83fd6cb134b0981663aa28e49a811c", features = [
     "with-debug-info",
 ] }
-miden-package = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
+miden-package = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "75bd636a6b83fd6cb134b0981663aa28e49a811c" }
 
 #miden-assembly = { git = "https://github.com/0xPolygonMiden/miden-vm", rev = "828557c28ca1d159bfe42195e7ea73256ce4aa06" }
 #miden-core = { git = "https://github.com/0xPolygonMiden/miden-vm", rev = "828557c28ca1d159bfe42195e7ea73256ce4aa06" }
