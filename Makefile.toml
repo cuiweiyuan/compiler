@@ -210,11 +210,6 @@ args = [
     "midenc",
 ]
 
-[tasks.install-cargo-component]
-category = "Test"
-description = "Install cargo-component extension"
-command = "cargo"
-args = ["install", "cargo-component@0.16.0"]
 
 [tasks.test-rust]
 category = "Test"
@@ -227,7 +222,6 @@ args = [
     "@@split(CARGO_MAKE_CARGO_BUILD_TEST_FLAGS, )",
     "${@}",
 ]
-dependencies = ["install-cargo-component"]
 
 [tasks.test-lit]
 category = "Test"

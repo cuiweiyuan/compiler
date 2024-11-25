@@ -162,8 +162,6 @@ impl RustcTest {
 pub enum CompilerTestInputType {
     /// A project that uses `cargo miden build` to produce a Wasm module to use as input
     CargoMiden(CargoTest),
-    /// A project that uses `cargo component build` to produce a Wasm module to use as input
-    CargoComponent(CargoTest),
     /// A project that uses `cargo build` to produce a core Wasm module to use as input
     Cargo(CargoTest),
     /// A project that uses `rustc` to produce a core Wasm module to use as input
@@ -224,13 +222,11 @@ impl CompilerTestBuilder {
         };
         let entrypoint = match source {
             CompilerTestInputType::Cargo(ref mut config) => config.entrypoint.take(),
-            CompilerTestInputType::CargoComponent(ref mut config) => config.entrypoint.take(),
             CompilerTestInputType::Rustc(_) => Some("__main".into()),
             CompilerTestInputType::CargoMiden(ref mut config) => config.entrypoint.take(),
         };
         let name = match source {
             CompilerTestInputType::Cargo(ref mut config) => config.name.as_ref(),
-            CompilerTestInputType::CargoComponent(ref mut config) => config.name.as_ref(),
             CompilerTestInputType::Rustc(ref mut config) => config.name.as_ref(),
             CompilerTestInputType::CargoMiden(ref mut config) => config.name.as_ref(),
         };
@@ -338,11 +334,6 @@ impl CompilerTestBuilder {
                 cmd.arg("miden").arg("build");
                 cmd
             }
-            CompilerTestInputType::CargoComponent(_) => {
-                let mut cmd = Command::new("cargo");
-                cmd.arg("component").arg("build");
-                cmd
-            }
             CompilerTestInputType::Cargo(_) => {
                 let mut cmd = Command::new("cargo");
                 cmd.arg("build");
@@ -354,9 +345,6 @@ impl CompilerTestBuilder {
         // Extract the directory in which source code is presumed to exist (or will be placed)
         let project_dir = match self.source {
             CompilerTestInputType::CargoMiden(CargoTest {
-                ref project_dir, ..
-            })
-            | CompilerTestInputType::CargoComponent(CargoTest {
                 ref project_dir, ..
             })
             | CompilerTestInputType::Cargo(CargoTest {
@@ -378,12 +366,6 @@ impl CompilerTestBuilder {
                     .arg("--release")
                     .arg("--target")
                     .arg(config.target.as_ref());
-            }
-            CompilerTestInputType::CargoComponent(_) => {
-                let manifest_path = project_dir.join("Cargo.toml");
-                command.arg("--manifest-path").arg(manifest_path).arg("--release");
-                // Render Cargo output as JSON
-                command.arg("--message-format=json-render-diagnostics");
             }
 
             CompilerTestInputType::Cargo(ref config) => {
@@ -473,49 +455,7 @@ impl CompilerTestBuilder {
                     ..Default::default()
                 }
             }
-            CompilerTestInputType::CargoComponent(_) => {
-                let mut child = command.spawn().unwrap_or_else(|_| {
-                    panic!(
-                        "Failed to execute command: {}",
-                        command
-                            .get_args()
-                            .map(|arg| format!("'{}'", arg.to_str().unwrap()))
-                            .collect::<Vec<_>>()
-                            .join(" ")
-                    )
-                });
 
-                let wasm_artifacts = find_wasm_artifacts(&mut child);
-                let output = child.wait().expect("Couldn't get cargo's exit status");
-                if !output.success() {
-                    report_cargo_error(child);
-                }
-                assert!(output.success());
-                assert_eq!(wasm_artifacts.len(), 1, "Expected one Wasm artifact");
-                let wasm_comp_path = &wasm_artifacts.first().unwrap();
-                let artifact_name =
-                    wasm_comp_path.file_stem().unwrap().to_str().unwrap().to_string();
-                let input_file = InputFile::from_path(wasm_comp_path).unwrap();
-                let mut inputs = vec![input_file];
-                inputs.extend(self.link_masm_modules.into_iter().map(|(path, content)| {
-                    let path = path.to_string();
-                    InputFile::new(
-                        midenc_session::FileType::Masm,
-                        InputType::Stdin {
-                            name: path.into(),
-                            input: content.into_bytes(),
-                        },
-                    )
-                }));
-
-                CompilerTest {
-                    config: self.config,
-                    session: default_session(inputs, &self.midenc_flags),
-                    artifact_name: artifact_name.into(),
-                    entrypoint: self.entrypoint,
-                    ..Default::default()
-                }
-            }
             CompilerTestInputType::Cargo(config) => {
                 let expected_wasm_artifact_path = config.wasm_artifact_path();
                 let skip_rust_compilation =
@@ -630,23 +570,6 @@ impl CompilerTestBuilder {
 
 /// Convenience builders
 impl CompilerTestBuilder {
-    /// Compile the Wasm component from a Rust Cargo project using cargo-component
-    pub fn rust_source_cargo_component(
-        cargo_project_folder: impl AsRef<Path>,
-        config: WasmTranslationConfig,
-    ) -> Self {
-        let name = cargo_project_folder
-            .as_ref()
-            .file_stem()
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or("".to_string());
-        let mut builder = CompilerTestBuilder::new(CompilerTestInputType::CargoComponent(
-            CargoTest::new(name, cargo_project_folder.as_ref().to_path_buf()),
-        ));
-        builder.with_wasm_translation_config(config);
-        builder
-    }
-
     /// Compile the Rust project using cargo-miden
     pub fn rust_source_cargo_miden(
         cargo_project_folder: impl AsRef<Path>,
@@ -1008,14 +931,6 @@ impl CompilerTest {
     /// Return the name of the artifact this test is derived from
     pub fn artifact_name(&self) -> &str {
         self.artifact_name.as_ref()
-    }
-
-    /// Compile the Wasm component from a Rust Cargo project using cargo-component
-    pub fn rust_source_cargo_component(
-        cargo_project_folder: impl AsRef<Path>,
-        config: WasmTranslationConfig,
-    ) -> Self {
-        CompilerTestBuilder::rust_source_cargo_component(cargo_project_folder, config).build()
     }
 
     /// Compile the Rust project using cargo-miden
