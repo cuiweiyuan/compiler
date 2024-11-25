@@ -43,13 +43,14 @@ fn rust_sdk_basic_wallet() {
     test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
     let package = test.compiled_package();
     let lib = package.unwrap_library();
-    let expected_module = "basic_wallet::miden:basic-wallet/basic-wallet@1.0.0";
+    let expected_module = "#anon::miden:basic-wallet/basic-wallet@1.0.0";
     let expected_function = "receive-asset";
     let exports = lib
         .exports()
-        .map(|e| (e.module.to_string(), e.name.as_str()))
+        .filter(|e| !e.module.to_string().starts_with("intrinsics"))
+        .map(|e| format!("{}::{}", e.module, e.name.as_str()))
         .collect::<Vec<_>>();
-    // dbg!(&exports);
+    dbg!(&exports);
     assert!(lib.exports().any(|export| {
         export.module.to_string() == expected_module && export.name.as_str() == expected_function
     }));
@@ -94,6 +95,8 @@ fn rust_sdk_p2id_note_script() {
         [
             "-l".into(),
             "std".into(),
+            "-l".into(),
+            "base".into(),
             "--link-library".into(),
             masp_path.into_os_string().into_string().unwrap().into(),
         ],
