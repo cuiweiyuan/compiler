@@ -1,9 +1,9 @@
-use std::{fmt, path::Path, sync::Arc};
+use std::{collections::BTreeMap, fmt, path::Path, sync::Arc};
 
 use hir::{Signature, Symbol};
 use miden_assembly::{
-    ast::{ModuleKind, ProcedureName},
-    KernelLibrary, Library as CompiledLibrary, LibraryNamespace,
+    ast::{self, ModuleKind, ProcedureName, QualifiedProcedureName},
+    KernelLibrary, Library as CompiledLibrary, LibraryNamespace, LibraryPath, Span,
 };
 use miden_core::{crypto::hash::Rpo256, AdviceMap};
 use midenc_hir::{
@@ -510,15 +510,60 @@ impl Library {
             let module = module.to_ast(debug_mode).map(Box::new)?;
             modules.push(module);
         }
-        // dbg!(&modules);
         let lib = assembler.assemble_library(modules)?;
         let advice_map: AdviceMap = self
             .rodatas()
             .iter()
             .map(|rodata| (rodata.digest, rodata.to_elements()))
             .collect();
-        Ok(Arc::new(lib.with_advice_map(advice_map)))
+        let mut mast_forest = lib.mast_forest().as_ref().clone();
+        mast_forest.advice_map_mut().extend(advice_map);
+        let converted_exports = recover_wasm_cm_interfaces(&lib);
+        let lib = CompiledLibrary::new(Arc::new(mast_forest), converted_exports)?;
+        Ok(Arc::new(lib))
     }
+}
+
+/// Try to recognize Wasm CM interfaces and transform those exports to have Wasm interface
+/// encoded as module name.
+/// Temporary workaround for:
+/// 1. Temporary exporting multiple interfaces from the same(Wasm core) module (an interface is encoded
+///    in the function name);
+/// 2. Assembler using the current module name to generate exports.
+fn recover_wasm_cm_interfaces(
+    lib: &CompiledLibrary,
+) -> BTreeMap<QualifiedProcedureName, miden_processor::MastNodeId> {
+    let mut exports = BTreeMap::new();
+    for export in lib.exports() {
+        let export_node_id = lib.get_export_node_id(export);
+        if export.module.to_string().starts_with("intrinsics")
+            || export.name.as_str().starts_with("cabi")
+        {
+            // Preserve intrinsics modules and internal Wasm CM `cabi_*` functions
+            exports.insert(export.clone(), export_node_id);
+            continue;
+        }
+
+        if export.name.as_str().contains("/") {
+            // Wasm CM interface
+            let parts = export.name.as_str().split('#').collect::<Vec<_>>();
+            assert_eq!(parts.len(), 2);
+            let module =
+                ast::Ident::new_unchecked(Span::new(SourceSpan::default(), parts[0].into()));
+            let name = parts[1];
+            let path = LibraryPath::new_from_components(LibraryNamespace::Anon, [module]);
+            let name = ast::ProcedureName::new_unchecked(ast::Ident::new_unchecked(Span::new(
+                SourceSpan::default(),
+                Arc::from(name),
+            )));
+            let new_export = QualifiedProcedureName::new(path, name);
+            exports.insert(new_export, export_node_id);
+        } else {
+            // Non-Wasm CM interface, preserve as is
+            exports.insert(export.clone(), export_node_id);
+        }
+    }
+    exports
 }
 
 impl fmt::Display for Library {
