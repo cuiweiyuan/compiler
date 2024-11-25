@@ -3,7 +3,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
 };
 
-use miden_assembly::Library as CompiledLibrary;
+use miden_assembly::{Library as CompiledLibrary, LibraryNamespace};
 use petgraph::{prelude::DiGraphMap, Direction};
 
 use crate::{
@@ -21,6 +21,7 @@ enum Node {
 }
 
 /// Represents an object input to the [Linker]
+#[derive(Debug)]
 pub enum Object {
     /// The object is an HIR module
     Hir(Box<Module>),
@@ -226,10 +227,25 @@ impl<'a> Linker<'a> {
     pub fn add_library(&mut self, lib: CompiledLibrary) {
         // Add all of the exported objects to the callgraph
         for export in lib.exports() {
-            let module = Ident::with_empty_span(Symbol::intern(export.module.path()));
-            let name: &str = export.name.as_ref();
-            let function = Ident::with_empty_span(Symbol::intern(name));
-            self.callgraph.add_node(FunctionIdent { module, function });
+            let module_str = export.module.path().to_string();
+            let name_str: &str = export.name.as_ref();
+            let function = Ident::with_empty_span(Symbol::intern(name_str));
+            if let Some(striped) =
+                module_str.strip_prefix(format!("{}::", LibraryNamespace::ANON_PATH).as_str())
+            {
+                // Strip the anonymous namespace and use the rest of the path as the module name
+                dbg!(striped);
+                self.callgraph.add_node(FunctionIdent {
+                    module: Ident::with_empty_span(Symbol::intern(striped)),
+                    function,
+                });
+                self.allow_missing.insert(striped.to_string().into());
+            } else {
+                // dbg!(export.to_string());
+                let module = Ident::with_empty_span(Symbol::intern(module_str.clone()));
+                self.callgraph.add_node(FunctionIdent { module, function });
+                self.allow_missing.insert(module_str.into());
+            }
         }
         self.program.add_library(lib);
     }
