@@ -110,3 +110,78 @@ fn rust_sdk_p2id_note_script() {
     test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
     test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
 }
+
+#[test]
+fn rust_sdk_cross_ctx_account() {
+    let _ = env_logger::builder().is_test(true).try_init();
+    let config = WasmTranslationConfig::default();
+    let mut test = CompilerTest::rust_source_cargo_miden(
+        "../rust-apps-wasm/rust-sdk/cross-ctx-account",
+        config,
+        [],
+    );
+    let artifact_name = test.artifact_name().to_string();
+    test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
+    test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
+    test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
+    let package = test.compiled_package();
+    let lib = package.unwrap_library();
+    let expected_module = "#anon::miden:cross-ctx-account/foo@1.0.0";
+    let expected_function = "process-felt";
+    let exports = lib
+        .exports()
+        .filter(|e| !e.module.to_string().starts_with("intrinsics"))
+        .map(|e| format!("{}::{}", e.module, e.name.as_str()))
+        .collect::<Vec<_>>();
+    dbg!(&exports);
+    assert!(lib.exports().any(|export| {
+        export.module.to_string() == expected_module && export.name.as_str() == expected_function
+    }));
+}
+
+#[test]
+fn rust_sdk_cross_ctx_note() {
+    // Build cross-ctx-account package
+    let args: Vec<String> = [
+        "cargo",
+        "miden",
+        "build",
+        "--manifest-path",
+        "../rust-apps-wasm/rust-sdk/cross-ctx-account/Cargo.toml",
+        "--release",
+        // Use the target dir of this test's cargo project to avoid issues running tests in parallel
+        // i.e. avoid using the same target dir as the basic-wallet test (see above)
+        "--target-dir",
+        "../rust-apps-wasm/rust-sdk/cross-ctx-note/target",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    dbg!(env::current_dir().unwrap().display());
+    let outputs = cargo_miden::run(args.into_iter(), cargo_miden::OutputType::Masm)
+        .expect("Failed to compile the cross-ctx-account package for cross-ctx-note");
+    let masp_path: PathBuf = outputs.first().unwrap().clone();
+    dbg!(&masp_path);
+
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let config = WasmTranslationConfig::default();
+    let mut test = CompilerTest::rust_source_cargo_miden(
+        "../rust-apps-wasm/rust-sdk/cross-ctx-note",
+        config,
+        [
+            "-l".into(),
+            "std".into(),
+            "-l".into(),
+            "base".into(),
+            "--link-library".into(),
+            masp_path.into_os_string().into_string().unwrap().into(),
+        ],
+    );
+    let artifact_name = test.artifact_name().to_string();
+    test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
+    test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
+    test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
+
+    // TODO: run it in the VM (outpit is checked via assert_eq! in the note code)
+}
