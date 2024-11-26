@@ -282,11 +282,11 @@ impl<const N: usize> PopFromStack for [u8; N] {
 ///
 /// Given a byte slice laid out like so:
 ///
-///     [b0, b1, b2, b3, b4, b5, b6, b7, .., b31]
+/// [b0, b1, b2, b3, b4, b5, b6, b7, .., b31]
 ///
 /// This will produce a vector of words laid out like so:
 ///
-///     [[{b0, ..b3}, {b4, ..b7}, {b8..b11}, {b12, ..b15}], ..]
+/// [[{b0, ..b3}, {b4, ..b7}, {b8..b11}, {b12, ..b15}], ..]
 ///
 /// In other words, it produces words that when placed on the stack and written to memory
 /// word-by-word, that memory will be laid out in the correct byte order.
