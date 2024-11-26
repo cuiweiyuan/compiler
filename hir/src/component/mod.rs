@@ -1,6 +1,7 @@
 use alloc::collections::BTreeMap;
 use core::ops::{Deref, DerefMut};
 
+use diagnostics::Spanned;
 use indexmap::IndexMap;
 use midenc_hir_type::Abi;
 
@@ -187,6 +188,19 @@ impl Component {
         Self::default()
     }
 
+    /// Return the name of this component
+    pub fn name(&self) -> Ident {
+        // Temporary imterim solution until we have a proper way to name components
+        let module_names = self.modules.keys().fold(String::new(), |acc, name| {
+            if acc.is_empty() {
+                name.to_string()
+            } else {
+                acc + "+" + name.as_str()
+            }
+        });
+        Ident::new(Symbol::intern(&module_names), self.modules.first().unwrap().0.span())
+    }
+
     /// Return a reference to the module table for this program
     pub fn modules(&self) -> &IndexMap<Ident, Box<Module>> {
         &self.modules
@@ -303,6 +317,30 @@ impl formatter::PrettyPrint for Component {
         } else {
             header + body + nl() + const_text(")") + nl()
         }
+    }
+}
+
+impl midenc_session::Emit for Component {
+    fn name(&self) -> Option<crate::Symbol> {
+        Some(self.name().as_symbol())
+    }
+
+    fn output_type(&self, _mode: midenc_session::OutputMode) -> midenc_session::OutputType {
+        midenc_session::OutputType::Hir
+    }
+
+    fn write_to<W: std::io::Write>(
+        &self,
+        mut writer: W,
+        mode: midenc_session::OutputMode,
+        _session: &midenc_session::Session,
+    ) -> std::io::Result<()> {
+        assert_eq!(
+            mode,
+            midenc_session::OutputMode::Text,
+            "binary mode is not supported for HIR Components"
+        );
+        writer.write_fmt(format_args!("{}", self))
     }
 }
 

@@ -1,3 +1,5 @@
+use midenc_hir::ComponentBuilder;
+
 use super::*;
 
 /// This stage of compilation takes the output of the parsing
@@ -27,20 +29,22 @@ impl Stage for SemanticAnalysisStage {
                 session.emit(OutputMode::Text, &ast).into_diagnostic()?;
                 let mut convert_to_hir = ast::ConvertAstToHir;
                 let module = Box::new(convert_to_hir.convert(ast, analyses, session)?);
-                LinkerInput::Hir(module)
+                let component =
+                    ComponentBuilder::new(&session.diagnostics).with_module(module)?.build();
+                LinkerInput::Hir(component.into())
             }
-            ParseOutput::Hir(module) if parse_only => {
+            ParseOutput::Hir(component) if parse_only => {
                 log::debug!("skipping semantic analysis (parse-only=true)");
-                session.emit(OutputMode::Text, &module).into_diagnostic()?;
+                session.emit(OutputMode::Text, &component).into_diagnostic()?;
                 return Err(CompilerStopped.into());
             }
-            ParseOutput::Hir(module) => {
+            ParseOutput::Hir(component) => {
                 log::debug!(
-                    "no semantic analysis required, '{}' is already valid hir",
-                    module.name.as_str()
+                    "no semantic analysis required, '{}' is already valid hir Compinent",
+                    component.name()
                 );
-                session.emit(OutputMode::Text, &module).into_diagnostic()?;
-                LinkerInput::Hir(module)
+                session.emit(OutputMode::Text, &component).into_diagnostic()?;
+                LinkerInput::Hir(component)
             }
             ParseOutput::Masm(masm) if parse_only => {
                 log::debug!("skipping semantic analysis (parse-only=true)");

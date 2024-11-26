@@ -24,7 +24,7 @@ impl Stage for ApplyRewritesStage {
                 input
             }
             LinkerInput::Hir(mut input) => {
-                log::debug!("applying rewrite passes to '{}'", input.name.as_str());
+                log::debug!("applying rewrite passes to '{}'", input.name().as_str());
                 // Get all registered module rewrites and apply them in the order they appear
                 let mut registered = vec![];
                 let matches = session.matches();
@@ -50,7 +50,10 @@ impl Stage for ApplyRewritesStage {
                 // specific passes selected.
                 let mut rewrites =
                     masm::default_rewrites(registered.into_iter().map(|(_, r)| r), session);
-                rewrites.apply(&mut input, analyses, session)?;
+
+                for (_, module) in input.modules_mut() {
+                    rewrites.apply(module, analyses, session)?;
+                }
 
                 log::debug!("rewrites successful");
                 LinkerInput::Hir(input)

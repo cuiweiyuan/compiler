@@ -1,7 +1,7 @@
 use super::*;
 
 pub enum LinkerInput {
-    Hir(Box<hir::Module>),
+    Hir(Box<hir::Component>),
     Masm(Box<masm::Module>),
 }
 
@@ -28,8 +28,10 @@ impl Stage for LinkerStage {
         let mut masm = masm::ModuleTree::default();
         for input in inputs {
             match input {
-                LinkerInput::Hir(module) => {
-                    ir.push_back(module);
+                LinkerInput::Hir(component) => {
+                    for (_id, module) in component.to_modules().into_iter() {
+                        ir.push_back(module);
+                    }
                 }
                 LinkerInput::Masm(module) => {
                     masm.insert(module);
