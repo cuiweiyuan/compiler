@@ -66,6 +66,10 @@ fn rust_sdk_p2id_note_script() {
         "--manifest-path",
         "../rust-apps-wasm/rust-sdk/basic-wallet/Cargo.toml",
         "--release",
+        // Use the target dir of this test's cargo project to avoid issues running tests in parallel
+        // i.e. avoid using the same target dir as the basic-wallet test (see above)
+        "--target-dir",
+        "../rust-apps-wasm/rust-sdk/p2id-note/target",
     ]
     .iter()
     .map(|s| s.to_string())
