@@ -411,23 +411,9 @@ end
 
 export."miden:base/note-script@1.0.0#note-script"
     exec."wit_bindgen_rt::run_ctors_once"
-    push.0.7
-    dup.1
-    dup.1
-    push.4294967295.1
-    exec.::std::math::u64::lt
-    assert
-    mul.4294967296
-    add
+    push.7
     exec.::miden:cross-ctx-account/foo@1.0.0::"process-felt"
-    push.0.10
-    dup.1
-    dup.1
-    push.4294967295.1
-    exec.::std::math::u64::lt
-    assert
-    mul.4294967296
-    add
+    push.10
     assert_eq
 end
 

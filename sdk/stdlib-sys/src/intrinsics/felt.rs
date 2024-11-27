@@ -7,6 +7,9 @@ extern "C" {
     #[link_name = "from-u64-unchecked"]
     fn extern_from_u64_unchecked(value: u64) -> Felt;
 
+    #[link_name = "from-u32-unchecked"]
+    fn extern_from_u32_unchecked(value: u32) -> Felt;
+
     #[link_name = "as_u64"]
     fn extern_as_u64(felt: Felt) -> u64;
 
@@ -68,9 +71,11 @@ extern "C" {
 macro_rules! felt {
     // Trigger a compile-time error if the value is not a constant
     ($value:literal) => {{
-        const VALUE: u64 = $value as u64;
-        assert!(VALUE <= Felt::M, "Invalid Felt value, must be >= 0 and <= 2^64 - 2^32 + 1");
-        Felt::from_u64_unchecked(VALUE)
+        // const VALUE: u64 = $value as u64;
+        // assert!(VALUE <= Felt::M, "Invalid Felt value, must be >= 0 and <= 2^64 - 2^32 + 1");
+        // Temporarily switch to `from_u32_unchecked` to use `bitcast` and avoid checks.
+        const VALUE: u32 = $value as u32;
+        Felt::from_u32_unchecked(VALUE)
     }};
 }
 
@@ -92,6 +97,11 @@ impl Felt {
     #[inline(always)]
     pub fn from_u64_unchecked(value: u64) -> Self {
         unsafe { extern_from_u64_unchecked(value) }
+    }
+
+    #[inline(always)]
+    pub fn from_u32_unchecked(value: u32) -> Self {
+        unsafe { extern_from_u32_unchecked(value) }
     }
 
     #[inline(always)]

@@ -1,11 +1,17 @@
-use std::{collections::BTreeMap, env, path::PathBuf};
+use std::{collections::BTreeMap, env, path::PathBuf, sync::Arc};
 
 use expect_test::expect_file;
 use miden_core::crypto::hash::RpoDigest;
+use miden_package::Package;
+use midenc_debug::Executor;
 use midenc_frontend_wasm::WasmTranslationConfig;
-use midenc_hir::{InterfaceFunctionIdent, InterfaceIdent, Symbol};
+use midenc_hir::{
+    FunctionIdent, Ident, InterfaceFunctionIdent, InterfaceIdent, SourceSpan, Symbol,
+};
 
-use crate::{cargo_proj::project, compiler_test::sdk_crate_path, CompilerTest};
+use crate::{
+    cargo_proj::project, compiler_test::sdk_crate_path, CompilerTest, CompilerTestBuilder,
+};
 
 #[test]
 fn account() {
@@ -166,7 +172,8 @@ fn rust_sdk_cross_ctx_note() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let config = WasmTranslationConfig::default();
-    let mut test = CompilerTest::rust_source_cargo_miden(
+
+    let mut builder = CompilerTestBuilder::rust_source_cargo_miden(
         "../rust-apps-wasm/rust-sdk/cross-ctx-note",
         config,
         [
@@ -175,13 +182,34 @@ fn rust_sdk_cross_ctx_note() {
             "-l".into(),
             "base".into(),
             "--link-library".into(),
-            masp_path.into_os_string().into_string().unwrap().into(),
+            masp_path.clone().into_os_string().into_string().unwrap().into(),
         ],
     );
+    builder.with_entrypoint(FunctionIdent {
+        // module: Ident::new(Symbol::intern("miden:base/note-script@1.0.0"), SourceSpan::default()),
+        module: Ident::new(Symbol::intern("cross_ctx_note"), SourceSpan::default()),
+        // function: Ident::new(Symbol::intern("note-script"), SourceSpan::default()),
+        function: Ident::new(
+            Symbol::intern("miden:base/note-script@1.0.0#note-script"),
+            SourceSpan::default(),
+        ),
+    });
+    let mut test = builder.build();
     let artifact_name = test.artifact_name().to_string();
     test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
     test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
     test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
 
-    // TODO: run it in the VM (outpit is checked via assert_eq! in the note code)
+    // Run it in the VM (output is checked via assert_eq in the note code)
+    let package = test.compiled_package();
+
+    let mut exec = Executor::new(vec![]);
+    let account_package =
+        Arc::new(Package::read_from_bytes(std::fs::read(masp_path).unwrap()).unwrap());
+
+    exec.dependency_resolver_mut()
+        .add(account_package.digest(), account_package.into());
+    exec.with_dependencies(&package.manifest.dependencies).unwrap();
+
+    let trace = exec.execute(&package.unwrap_program(), &test.session);
 }

@@ -3,7 +3,10 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
-use crate::intrinsics::{Felt, Word};
+use crate::{
+    felt,
+    intrinsics::{Felt, Word},
+};
 
 #[link(wasm_import_module = "miden:core-import/stdlib-mem@1.0.0")]
 extern "C" {
@@ -96,7 +99,7 @@ pub fn pipe_double_words_to_memory(num_words: Felt) -> (Word, Vec<Felt>) {
     let end_ptr = unsafe { write_ptr.add(num_words_in_felts) };
     // Place for returned C, B, A, write_ptr
     let mut ret_area = ::core::mem::MaybeUninit::<Result>::uninit();
-    let zero = Felt::from_u64_unchecked(0);
+    let zero = felt!(0);
     unsafe {
         extern_pipe_double_words_to_memory(
             zero,

@@ -9,7 +9,7 @@ use miden_assembly::Library as CompiledLibrary;
 use miden_core::{Program, StackInputs, Word};
 use miden_package::{
     Dependency, DependencyName, DependencyResolution, DependencyResolver, LocalResolution,
-    MemDependencyResolverByDigest, SystemLibraryId,
+    MastArtifact, MemDependencyResolverByDigest, SystemLibraryId,
 };
 use miden_processor::{
     AdviceInputs, ContextId, ExecutionError, Felt, MastForest, MemAdviceProvider, Process,
@@ -35,17 +35,23 @@ pub struct Executor {
     stack: StackInputs,
     advice: AdviceInputs,
     libraries: Vec<Arc<MastForest>>,
+    dependency_resolver: MemDependencyResolverByDigest,
 }
 impl Executor {
     /// Construct an executor with the given arguments on the operand stack
     pub fn new(args: Vec<Felt>) -> Self {
+        let mut resolver = MemDependencyResolverByDigest::default();
+        resolver.add(*STDLIB.digest(), STDLIB.clone().into());
+        resolver.add(*BASE.digest(), BASE.clone().into());
         Self {
             stack: StackInputs::new(args).expect("invalid stack inputs"),
             advice: AdviceInputs::default(),
             libraries: Default::default(),
+            dependency_resolver: resolver,
         }
     }
 
+    /// Construct the executor with the given inputs and adds dependencies from the given package
     pub fn for_package(
         package: &miden_package::Package,
         args: Vec<Felt>,
@@ -57,25 +63,35 @@ impl Executor {
             package.name,
             DisplayHex::new(&package.digest().as_bytes())
         );
-
         let mut exec = Self::new(args);
+        exec.with_dependencies(&package.manifest.dependencies)?;
+        log::debug!("executor created");
+        Ok(exec)
+    }
 
-        let mut resolver = MemDependencyResolverByDigest::default();
-        resolver.add(*STDLIB.digest(), STDLIB.clone().into());
-        resolver.add(*BASE.digest(), BASE.clone().into());
+    /// Adds dependencies to the executor
+    pub fn with_dependencies(&mut self, dependencies: &[Dependency]) -> Result<&mut Self, Report> {
+        use midenc_hir::formatter::DisplayHex;
 
-        for dep in &package.manifest.dependencies {
-            match resolver.resolve(dep) {
+        for dep in dependencies {
+            match self.dependency_resolver.resolve(dep) {
                 Some(resolution) => {
                     log::debug!("dependency {:?} resolved to {:?}", dep, resolution);
+                    log::debug!("loading library from package dependency: {:?}", dep);
                     match resolution {
                         DependencyResolution::Local(LocalResolution::Library(lib)) => {
                             let library = lib.as_ref();
-                            log::debug!("loading library from package dependency: {:?}", dep);
-                            exec.with_mast_forest(lib.mast_forest().clone());
+                            self.with_mast_forest(lib.mast_forest().clone());
                         }
-                        DependencyResolution::Local(LocalResolution::Package(_)) => {
-                            todo!("local package dependencies are not yet supported in executor")
+                        DependencyResolution::Local(LocalResolution::Package(pkg)) => {
+                            if let MastArtifact::Library(lib) = &pkg.mast {
+                                self.with_mast_forest(lib.mast_forest().clone());
+                            } else {
+                                Err(Report::msg(format!(
+                                    "expected package {} to contain library",
+                                    pkg.name
+                                )))?;
+                            }
                         }
                     }
                 }
@@ -85,10 +101,10 @@ impl Executor {
 
         log::debug!("executor created");
 
-        Ok(exec)
+        Ok(self)
     }
 
-    /// Set the contents of memory for the shadow stack frame of the entrypoint
+    /// Set the contents of memory for the shadow stack frame of the entrypint
     pub fn with_advice_inputs(&mut self, advice: AdviceInputs) -> &mut Self {
         self.advice.extend(advice);
         self
@@ -289,6 +305,10 @@ impl Executor {
     {
         let out = self.execute(program, session);
         out.parse_result().expect("invalid result")
+    }
+
+    pub fn dependency_resolver_mut(&mut self) -> &mut MemDependencyResolverByDigest {
+        &mut self.dependency_resolver
     }
 }
 

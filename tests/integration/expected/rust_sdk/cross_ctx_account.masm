@@ -409,16 +409,7 @@ end
 
 
 export."miden:cross-ctx-account/foo@1.0.0#process-felt"
-    exec."wit_bindgen_rt::run_ctors_once"
-    push.0.1
-    dup.1
-    dup.1
-    push.4294967295.1
-    exec.::std::math::u64::lt
-    assert
-    mul.4294967296
-    add
-    add
+    exec."wit_bindgen_rt::run_ctors_once" push.3 add
 end
 
 

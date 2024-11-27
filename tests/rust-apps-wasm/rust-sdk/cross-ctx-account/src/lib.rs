@@ -31,6 +31,6 @@ impl foo::Guest for MyFoo {
     fn process_felt(input: Felt) -> Felt {
         // TODO: load increment from the global variable to test rodata initialization on fresh
         // context creation
-        input + felt!(1)
+        input + felt!(3)
     }
 }

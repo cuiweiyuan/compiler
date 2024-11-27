@@ -62,6 +62,25 @@ pub mod miden {
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
+            pub fn from_u32_unchecked(a: u32) -> f32 {
+                unsafe {
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(
+                        wasm_import_module = "miden:core-import/intrinsics-felt@1.0.0"
+                    )]
+                    extern "C" {
+                        #[link_name = "from-u32-unchecked"]
+                        fn wit_import(_: i32) -> f32;
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    fn wit_import(_: i32) -> f32 {
+                        unreachable!()
+                    }
+                    let ret = wit_import(_rt::as_i32(&a));
+                    ret
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
             pub fn assert_eq(a: f32, b: f32) {
                 unsafe {
                     #[cfg(target_arch = "wasm32")]
@@ -349,8 +368,8 @@ pub(crate) use __export_foo_world_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.31.0:miden:cross-ctx-account@1.0.0:foo-world:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1390] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xee\x09\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1421] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x8d\x0a\x01A\x02\x01\
 A\x11\x01B\x1f\x01r\x01\x05innerv\x04\0\x04felt\x03\0\0\x01o\x04\x01\x01\x01\x01\
 \x01r\x01\x05inner\x02\x04\0\x04word\x03\0\x03\x01r\x01\x05inner\x01\x04\0\x0aac\
 count-id\x03\0\x05\x01r\x01\x05inner\x04\x04\0\x09recipient\x03\0\x07\x01r\x01\x05\
@@ -362,24 +381,25 @@ orage-root\x03\0\x15\x01r\x01\x05inner\x04\x04\0\x11account-code-root\x03\0\x17\
 r\x01\x05inner\x04\x04\0\x10vault-commitment\x03\0\x19\x01r\x01\x05inner\x01\x04\
 \0\x07note-id\x03\0\x1b\x01r\x01\x05inner\x01\x04\0\x09note-type\x03\0\x1d\x03\x01\
 \x1bmiden:base/core-types@1.0.0\x05\0\x01B\x02\x01@\0\0z\x04\0\x09heap-base\x01\0\
-\x03\x01&miden:core-import/intrinsics-mem@1.0.0\x05\x01\x01B\x08\x01@\x02\x01av\x01\
+\x03\x01&miden:core-import/intrinsics-mem@1.0.0\x05\x01\x01B\x0a\x01@\x02\x01av\x01\
 bv\0v\x04\0\x03add\x01\0\x01@\x02\x01av\x01bv\0\x7f\x04\0\x02eq\x01\x01\x01@\x01\
-\x01aw\0v\x04\0\x12from-u64-unchecked\x01\x02\x01@\x02\x01av\x01bv\x01\0\x04\0\x09\
-assert-eq\x01\x03\x03\x01'miden:core-import/intrinsics-felt@1.0.0\x05\x02\x01B\x02\
-\x01@\x09\x02a0z\x02a1z\x02a2z\x02a3z\x02a4z\x02a5z\x02a6z\x02a7z\x0aresult-ptrz\
-\x01\0\x04\0\x0fhash-one-to-one\x01\0\x03\x013miden:core-import/stdlib-crypto-ha\
-shes-blake3@1.0.0\x05\x03\x01B\x05\x01@\x05\x06asset0v\x06asset1v\x06asset2v\x06\
-asset3v\x0aresult-ptrz\x01\0\x04\0\x09add-asset\x01\0\x04\0\x0cremove-asset\x01\0\
-\x01@\0\0v\x04\0\x06get-id\x01\x01\x03\x01\x1fmiden:core-import/account@1.0.0\x05\
-\x04\x01B\x03\x01@\x01\x03ptrz\0z\x04\0\x0aget-inputs\x01\0\x04\0\x0aget-assets\x01\
-\0\x03\x01\x1cmiden:core-import/note@1.0.0\x05\x05\x01B\x02\x01@\x0a\x06asset0v\x06\
-asset1v\x06asset2v\x06asset3v\x03tagv\x09note-typev\x0arecipient0v\x0arecipient1\
-v\x0arecipient2v\x0arecipient3v\0v\x04\0\x0bcreate-note\x01\0\x03\x01\x1amiden:c\
-ore-import/tx@1.0.0\x05\x06\x02\x03\0\0\x04felt\x01B\x04\x02\x03\x02\x01\x07\x04\
-\0\x04felt\x03\0\0\x01@\x01\x05input\x01\0\x01\x04\0\x0cprocess-felt\x01\x02\x04\
-\x01!miden:cross-ctx-account/foo@1.0.0\x05\x08\x04\x01'miden:cross-ctx-account/f\
-oo-world@1.0.0\x04\0\x0b\x0f\x01\0\x09foo-world\x03\0\0\0G\x09producers\x01\x0cp\
-rocessed-by\x02\x0dwit-component\x070.216.0\x10wit-bindgen-rust\x060.31.0";
+\x01aw\0v\x04\0\x12from-u64-unchecked\x01\x02\x01@\x01\x01ay\0v\x04\0\x12from-u3\
+2-unchecked\x01\x03\x01@\x02\x01av\x01bv\x01\0\x04\0\x09assert-eq\x01\x04\x03\x01\
+'miden:core-import/intrinsics-felt@1.0.0\x05\x02\x01B\x02\x01@\x09\x02a0z\x02a1z\
+\x02a2z\x02a3z\x02a4z\x02a5z\x02a6z\x02a7z\x0aresult-ptrz\x01\0\x04\0\x0fhash-on\
+e-to-one\x01\0\x03\x013miden:core-import/stdlib-crypto-hashes-blake3@1.0.0\x05\x03\
+\x01B\x05\x01@\x05\x06asset0v\x06asset1v\x06asset2v\x06asset3v\x0aresult-ptrz\x01\
+\0\x04\0\x09add-asset\x01\0\x04\0\x0cremove-asset\x01\0\x01@\0\0v\x04\0\x06get-i\
+d\x01\x01\x03\x01\x1fmiden:core-import/account@1.0.0\x05\x04\x01B\x03\x01@\x01\x03\
+ptrz\0z\x04\0\x0aget-inputs\x01\0\x04\0\x0aget-assets\x01\0\x03\x01\x1cmiden:cor\
+e-import/note@1.0.0\x05\x05\x01B\x02\x01@\x0a\x06asset0v\x06asset1v\x06asset2v\x06\
+asset3v\x03tagv\x09note-typev\x0arecipient0v\x0arecipient1v\x0arecipient2v\x0are\
+cipient3v\0v\x04\0\x0bcreate-note\x01\0\x03\x01\x1amiden:core-import/tx@1.0.0\x05\
+\x06\x02\x03\0\0\x04felt\x01B\x04\x02\x03\x02\x01\x07\x04\0\x04felt\x03\0\0\x01@\
+\x01\x05input\x01\0\x01\x04\0\x0cprocess-felt\x01\x02\x04\x01!miden:cross-ctx-ac\
+count/foo@1.0.0\x05\x08\x04\x01'miden:cross-ctx-account/foo-world@1.0.0\x04\0\x0b\
+\x0f\x01\0\x09foo-world\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-c\
+omponent\x070.216.0\x10wit-bindgen-rust\x060.31.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {
