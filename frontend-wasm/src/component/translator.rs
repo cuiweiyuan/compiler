@@ -362,7 +362,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 dbg!(name);
                 // The inline export does no have an interface name
                 let interface = interface.unwrap_or_default();
-                dbg!(&interface);
+                // dbg!(&interface);
                 let export_name = InterfaceFunctionIdent::from_full(interface, name.clone());
                 let export = self.build_export_lifted_function(func, ty, options)?;
                 component_builder.add_export(export_name, export);

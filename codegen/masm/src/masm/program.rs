@@ -263,7 +263,7 @@ impl Program {
 
         // Assemble library
         for module in self.library.modules.iter() {
-            if lib_modules.contains(&module.id.to_string()) {
+            if lib_modules.contains(&module.id.as_str().to_string()) {
                 log::warn!(
                     "module '{}' is already registered with the assembler as library's module, \
                      skipping",
