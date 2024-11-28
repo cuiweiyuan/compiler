@@ -41,7 +41,7 @@
         (func (export #__main) (result i32)
             (block 0
                 (let (v1 i32) (const.i32 0))
-                (call #global_var_update)
+                (exec #global_var_update)
                 (let (v2 i32) (const.i32 0))
                 (let (v3 i32) (const.i32 -9))
                 (br (block 2 v3 v2)))

@@ -702,7 +702,7 @@ fn translate_call(
         func_state.pushn(&results);
     } else {
         // no transformation needed
-        let call = builder.ins().call(func_id, args, span);
+        let call = builder.ins().exec(func_id, args, span);
         let results = builder.inst_results(call);
         func_state.popn(num_wasm_args);
         func_state.pushn(results);

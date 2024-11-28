@@ -608,7 +608,7 @@ pub fn mem_intrinsics(builder: &mut ProgramBuilder, _context: &TestContext) -> a
     let extra_count = fb.ins().zext(extra_page, Type::U32, SourceSpan::UNKNOWN);
     let num_pages = fb.ins().add_checked(need_pages, extra_count, SourceSpan::UNKNOWN);
     let prev_pages = {
-        let call = fb.ins().call(memory_grow, &[num_pages], SourceSpan::UNKNOWN);
+        let call = fb.ins().exec(memory_grow, &[num_pages], SourceSpan::UNKNOWN);
         fb.first_result(call)
     };
     let usize_max = fb.ins().u32(u32::MAX, SourceSpan::UNKNOWN);
@@ -1001,7 +1001,7 @@ pub fn hello_world(builder: &mut ProgramBuilder, context: &TestContext) -> anyho
         SourceSpan::UNKNOWN,
     );
     let ptr = {
-        let call = fb.ins().call(malloc, &[len], SourceSpan::UNKNOWN);
+        let call = fb.ins().exec(malloc, &[len], SourceSpan::UNKNOWN);
         fb.first_result(call)
     };
     let hello_gv = fb.ins().symbol("HELLO", SourceSpan::UNKNOWN);
@@ -1016,7 +1016,7 @@ pub fn hello_world(builder: &mut ProgramBuilder, context: &TestContext) -> anyho
     fb.ins().memcpy(hello_data_ptr, ptr, len, SourceSpan::UNKNOWN);
     let greeting_ptr = fb.ins().alloca(str_type(), SourceSpan::UNKNOWN);
     fb.ins()
-        .call(str_from_raw_parts, &[greeting_ptr, ptr, len], SourceSpan::UNKNOWN);
+        .exec(str_from_raw_parts, &[greeting_ptr, ptr, len], SourceSpan::UNKNOWN);
     let page_size = fb.ins().load_symbol("PAGE_SIZE", Type::U32, SourceSpan::UNKNOWN);
     let expected_page_size = fb.ins().u32(PAGE_SIZE, SourceSpan::UNKNOWN);
     fb.ins().assert_eq(page_size, expected_page_size, SourceSpan::UNKNOWN);
@@ -1024,7 +1024,7 @@ pub fn hello_world(builder: &mut ProgramBuilder, context: &TestContext) -> anyho
         let hello_ptr =
             fb.ins()
                 .symbol_addr("HELLO", Type::Ptr(Box::new(str_type())), SourceSpan::UNKNOWN);
-        let call = fb.ins().call(str_compare, &[hello_ptr, greeting_ptr], SourceSpan::UNKNOWN);
+        let call = fb.ins().exec(str_compare, &[hello_ptr, greeting_ptr], SourceSpan::UNKNOWN);
         fb.first_result(call)
     };
     let compared = fb.ins().trunc(compared, Type::I1, SourceSpan::UNKNOWN);

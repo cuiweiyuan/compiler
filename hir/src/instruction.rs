@@ -102,7 +102,7 @@ pub enum Instruction {
     BinaryOpImm(BinaryOpImm),
     UnaryOp(UnaryOp),
     UnaryOpImm(UnaryOpImm),
-    Call(Call),
+    Exec(Exec),
     Br(Br),
     CondBr(CondBr),
     Switch(Switch),
@@ -123,7 +123,7 @@ impl Instruction {
             Self::BinaryOpImm(op) => Self::BinaryOpImm(op.clone()),
             Self::UnaryOp(op) => Self::UnaryOp(op.clone()),
             Self::UnaryOpImm(op) => Self::UnaryOpImm(op.clone()),
-            Self::Call(call) => Self::Call(Call {
+            Self::Exec(call) => Self::Exec(Exec {
                 args: call.args.deep_clone(value_lists),
                 ..call.clone()
             }),
@@ -178,7 +178,7 @@ impl Instruction {
             | Self::BinaryOpImm(BinaryOpImm { ref op, .. })
             | Self::UnaryOp(UnaryOp { ref op, .. })
             | Self::UnaryOpImm(UnaryOpImm { ref op, .. })
-            | Self::Call(Call { ref op, .. })
+            | Self::Exec(Exec { ref op, .. })
             | Self::Br(Br { ref op, .. })
             | Self::CondBr(CondBr { ref op, .. })
             | Self::Switch(Switch { ref op, .. })
@@ -234,7 +234,7 @@ impl Instruction {
             Self::BinaryOp(BinaryOp { ref args, .. }) => args.as_slice(),
             Self::BinaryOpImm(BinaryOpImm { ref arg, .. }) => core::slice::from_ref(arg),
             Self::UnaryOp(UnaryOp { ref arg, .. }) => core::slice::from_ref(arg),
-            Self::Call(Call { ref args, .. }) => args.as_slice(pool),
+            Self::Exec(Exec { ref args, .. }) => args.as_slice(pool),
             Self::CondBr(CondBr { ref cond, .. }) => core::slice::from_ref(cond),
             Self::Switch(Switch { ref arg, .. }) => core::slice::from_ref(arg),
             Self::Ret(Ret { ref args, .. }) => args.as_slice(pool),
@@ -253,7 +253,7 @@ impl Instruction {
             Self::BinaryOp(BinaryOp { ref mut args, .. }) => args.as_mut_slice(),
             Self::BinaryOpImm(BinaryOpImm { ref mut arg, .. }) => core::slice::from_mut(arg),
             Self::UnaryOp(UnaryOp { ref mut arg, .. }) => core::slice::from_mut(arg),
-            Self::Call(Call { ref mut args, .. }) => args.as_mut_slice(pool),
+            Self::Exec(Exec { ref mut args, .. }) => args.as_mut_slice(pool),
             Self::CondBr(CondBr { ref mut cond, .. }) => core::slice::from_mut(cond),
             Self::Switch(Switch { ref mut arg, .. }) => core::slice::from_mut(arg),
             Self::Ret(Ret { ref mut args, .. }) => args.as_mut_slice(pool),
@@ -298,7 +298,7 @@ impl Instruction {
 
     pub fn analyze_call<'a>(&'a self, pool: &'a ValueListPool) -> CallInfo<'a> {
         match self {
-            Self::Call(ref c) => CallInfo::Direct(c.callee, c.args.as_slice(pool)),
+            Self::Exec(ref c) => CallInfo::Direct(c.callee, c.args.as_slice(pool)),
             _ => CallInfo::NotACall,
         }
     }
@@ -457,7 +457,7 @@ pub enum Opcode {
     IsOdd,
     Min,
     Max,
-    Call,
+    Exec,
     Syscall,
     Br,
     CondBr,
@@ -485,7 +485,7 @@ impl Opcode {
     }
 
     pub fn is_call(&self) -> bool {
-        matches!(self, Self::Call | Self::Syscall)
+        matches!(self, Self::Exec | Self::Syscall)
     }
 
     pub fn is_commutative(&self) -> bool {
@@ -517,7 +517,7 @@ impl Opcode {
                 | Self::MemCpy
                 | Self::MemSize
                 | Self::Load
-                | Self::Call
+                | Self::Exec
                 | Self::Syscall
                 | Self::InlineAsm
                 | Self::Reload
@@ -531,7 +531,7 @@ impl Opcode {
                 | Self::MemSet
                 | Self::MemCpy
                 | Self::Store
-                | Self::Call
+                | Self::Exec
                 | Self::Syscall
                 | Self::InlineAsm
                 | Self::Spill
@@ -549,7 +549,7 @@ impl Opcode {
             | Self::MemGrow
             | Self::MemSet
             | Self::MemCpy
-            | Self::Call
+            | Self::Exec
             | Self::Syscall
             | Self::Br
             | Self::CondBr
@@ -701,7 +701,7 @@ impl Opcode {
             // memcpy requires source, destination, and arity
             Self::MemSet | Self::MemCpy => 3,
             // Calls are entirely variable
-            Self::Call | Self::Syscall => 0,
+            Self::Exec | Self::Syscall => 0,
             // Unconditional branches have no fixed arguments
             Self::Br => 0,
             // Ifs have a single argument, the conditional
@@ -811,7 +811,7 @@ impl Opcode {
                 smallvec![ctrl_ty.pointee().expect("expected pointer type").clone()]
             }
             // Call results are handled separately
-            Self::Call | Self::Syscall | Self::InlineAsm => unreachable!(),
+            Self::Exec | Self::Syscall | Self::InlineAsm => unreachable!(),
         }
     }
 }
@@ -852,7 +852,7 @@ impl fmt::Display for Opcode {
             Self::Br => f.write_str("br"),
             Self::CondBr => f.write_str("condbr"),
             Self::Switch => f.write_str("switch"),
-            Self::Call => f.write_str("call"),
+            Self::Exec => f.write_str("exec"),
             Self::Syscall => f.write_str("syscall"),
             Self::Ret => f.write_str("ret"),
             Self::Test => f.write_str("test"),
@@ -1002,7 +1002,7 @@ pub struct UnaryOpImm {
 }
 
 #[derive(Debug, Clone)]
-pub struct Call {
+pub struct Exec {
     pub op: Opcode,
     pub callee: FunctionIdent,
     /// NOTE: Call arguments are always in stack order, i.e. the top operand on
@@ -1191,7 +1191,7 @@ impl<'a> PartialEq for InstructionWithValueListPool<'a> {
             (Instruction::UnaryOpImm(l), Instruction::UnaryOpImm(r)) => {
                 l.imm == r.imm && l.overflow == r.overflow
             }
-            (Instruction::Call(l), Instruction::Call(r)) => {
+            (Instruction::Exec(l), Instruction::Exec(r)) => {
                 l.callee == r.callee
                     && l.args.as_slice(self.value_lists) == r.args.as_slice(self.value_lists)
             }
@@ -1354,7 +1354,7 @@ impl<'a> formatter::PrettyPrint for InstPrettyPrinter<'a> {
                 (vec![], args)
             }
             Instruction::RetImm(RetImm { arg, .. }) => (vec![], vec![display(*arg)]),
-            Instruction::Call(Call { callee, args, .. }) => {
+            Instruction::Exec(Exec { callee, args, .. }) => {
                 let mut operands = if callee.module == self.current_function.module {
                     vec![display(callee.function)]
                 } else {
