@@ -235,7 +235,7 @@ impl<'a> Rule<BlockData> for TypeCheck<'a> {
                 | Instruction::PrimOp(_)
                 | Instruction::Test(_)
                 | Instruction::InlineAsm(_)
-                | Instruction::Exec(_) => {
+                | Instruction::Call(_) => {
                     let args = node.arguments(&self.dfg.value_lists);
                     typechecker.check(args, results)?;
                 }
@@ -1233,8 +1233,8 @@ impl<'a> InstTypeChecker<'a> {
             }
             Opcode::IsOdd => InstPattern::Exact(vec![TypePattern::Int], vec![Type::I1.into()]),
             Opcode::Min | Opcode::Max => InstPattern::BinaryMatching(TypePattern::Int),
-            Opcode::Exec | Opcode::Syscall => match node.as_ref() {
-                Instruction::Exec(Exec { ref callee, .. }) => {
+            Opcode::Exec | Opcode::Call | Opcode::Syscall => match node.as_ref() {
+                Instruction::Call(Call { ref callee, .. }) => {
                     if let Some(import) = dfg.get_import(callee) {
                         let args = import
                             .signature

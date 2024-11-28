@@ -240,7 +240,7 @@ impl<'b, 'f: 'b> BlockEmitter<'b, 'f> {
             Instruction::Load(op) => self.emit_load_op(inst_info, op),
             Instruction::PrimOp(op) => self.emit_primop(inst_info, op),
             Instruction::PrimOpImm(op) => self.emit_primop_imm(inst_info, op),
-            Instruction::Exec(op) => self.emit_call_op(inst_info, op),
+            Instruction::Call(op) => self.emit_call_op(inst_info, op),
             Instruction::InlineAsm(op) => self.emit_inline_asm(inst_info, op),
             Instruction::Switch(_) => {
                 panic!("expected switch instructions to have been rewritten before stackification")
@@ -811,7 +811,7 @@ impl<'b, 'f: 'b> BlockEmitter<'b, 'f> {
         }
     }
 
-    fn emit_call_op(&mut self, inst_info: &InstInfo, op: &hir::Exec) {
+    fn emit_call_op(&mut self, inst_info: &InstInfo, op: &hir::Call) {
         assert_ne!(op.callee, self.function.f.id, "unexpected recursive call");
 
         let span = self.function.f.dfg.inst_span(inst_info.inst);
@@ -819,6 +819,7 @@ impl<'b, 'f: 'b> BlockEmitter<'b, 'f> {
         match op.op {
             hir::Opcode::Syscall => emitter.syscall(op.callee, span),
             hir::Opcode::Exec => emitter.exec(op.callee, span),
+            hir::Opcode::Call => emitter.call(op.callee, span),
             opcode => unimplemented!("unrecognized procedure call opcode: '{opcode}'"),
         }
     }

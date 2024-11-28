@@ -702,7 +702,7 @@ fn try_insert_inst(
                     operands.iter().map(|arg| arg.into_inner()),
                     &mut function.dfg.value_lists,
                 );
-                Some(Instruction::Exec(crate::Exec { op, callee, args }))
+                Some(Instruction::Call(crate::Call { op, callee, args }))
             } else {
                 None
             }

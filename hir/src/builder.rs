@@ -1356,7 +1356,21 @@ pub trait InstBuilder<'f>: InstBuilderBase<'f> {
             );
             vlist.extend(args.iter().copied(), &mut dfg.value_lists);
         }
-        self.Exec(Opcode::Exec, callee, vlist, span).0
+        self.Call(Opcode::Exec, callee, vlist, span).0
+    }
+
+    fn call(mut self, callee: FunctionIdent, args: &[Value], span: SourceSpan) -> Inst {
+        let mut vlist = ValueList::default();
+        {
+            let dfg = self.data_flow_graph_mut();
+            assert!(
+                dfg.get_import(&callee).is_some(),
+                "must import callee ({}) before calling it",
+                &callee
+            );
+            vlist.extend(args.iter().copied(), &mut dfg.value_lists);
+        }
+        self.Call(Opcode::Call, callee, vlist, span).0
     }
 
     fn syscall(mut self, callee: FunctionIdent, args: &[Value], span: SourceSpan) -> Inst {
@@ -1370,7 +1384,7 @@ pub trait InstBuilder<'f>: InstBuilderBase<'f> {
             );
             vlist.extend(args.iter().copied(), &mut dfg.value_lists);
         }
-        self.Exec(Opcode::Syscall, callee, vlist, span).0
+        self.Call(Opcode::Syscall, callee, vlist, span).0
     }
 
     fn select(mut self, cond: Value, a: Value, b: Value, span: SourceSpan) -> Value {
@@ -1524,14 +1538,14 @@ pub trait InstBuilder<'f>: InstBuilderBase<'f> {
     }
 
     #[allow(non_snake_case)]
-    fn Exec(
+    fn Call(
         self,
         op: Opcode,
         callee: FunctionIdent,
         args: ValueList,
         span: SourceSpan,
     ) -> (Inst, &'f mut DataFlowGraph) {
-        let data = Instruction::Exec(Exec { op, callee, args });
+        let data = Instruction::Call(Call { op, callee, args });
         self.build(data, Type::Unit, span)
     }
 

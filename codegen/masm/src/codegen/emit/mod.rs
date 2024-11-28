@@ -125,6 +125,11 @@ impl<'a> InstOpEmitter<'a> {
         self.emitter.exec(import, span);
     }
 
+    pub fn call(&mut self, callee: hir::FunctionIdent, span: SourceSpan) {
+        let import = self.dfg.get_import(&callee).unwrap();
+        self.emitter.call(import, span);
+    }
+
     pub fn syscall(&mut self, callee: hir::FunctionIdent, span: SourceSpan) {
         let import = self.dfg.get_import(&callee).unwrap();
         self.emitter.syscall(import, span);
@@ -1886,6 +1891,36 @@ mod tests {
         assert_eq!(emitter.stack_len(), 2);
 
         emitter.exec(&callee, SourceSpan::default());
+        assert_eq!(emitter.stack_len(), 1);
+        assert_eq!(emitter.stack()[0], return_ty);
+    }
+
+    #[test]
+    fn op_emitter_u32_call_test() {
+        use midenc_hir::ExternalFunction;
+
+        let mut function = setup();
+        let entry = function.body.id();
+        let mut stack = OperandStack::default();
+        let mut emitter = OpEmitter::new(&mut function, entry, &mut stack);
+
+        let return_ty = Type::Array(Box::new(Type::U32), 1);
+        let callee = ExternalFunction {
+            id: "test::add".parse().unwrap(),
+            signature: Signature::new(
+                [AbiParam::new(Type::U32), AbiParam::new(Type::I1)],
+                [AbiParam::new(return_ty.clone())],
+            ),
+        };
+
+        let t = Immediate::I1(true);
+        let one = Immediate::U32(1);
+
+        emitter.literal(t, SourceSpan::default());
+        emitter.literal(one, SourceSpan::default());
+        assert_eq!(emitter.stack_len(), 2);
+
+        emitter.call(&callee, SourceSpan::default());
         assert_eq!(emitter.stack_len(), 1);
         assert_eq!(emitter.stack()[0], return_ty);
     }
