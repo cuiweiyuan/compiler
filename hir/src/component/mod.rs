@@ -141,7 +141,7 @@ impl formatter::PrettyPrint for ComponentImport {
 }
 
 /// A component export
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ComponentExport {
     /// The module function that is being exported
     pub function: FunctionIdent,
@@ -366,6 +366,17 @@ impl<'a> ComponentBuilder<'a> {
         }
     }
 
+    /// Create a new [ComponentBuilder] from a [Component].
+    pub fn load(component: Component, diagnostics: &'a DiagnosticsHandler) -> Self {
+        Self {
+            modules: component.modules,
+            imports: component.imports,
+            exports: component.exports,
+            entry: None,
+            diagnostics,
+        }
+    }
+
     /// Set the entrypoint for the [Component] being built.
     #[inline]
     pub fn with_entrypoint(mut self, id: FunctionIdent) -> Self {
@@ -381,6 +392,15 @@ impl<'a> ComponentBuilder<'a> {
     /// Returns `Err` if a module with the same name already exists
     pub fn with_module(mut self, module: Box<Module>) -> Result<Self, ModuleConflictError> {
         self.add_module(module).map(|_| self)
+    }
+
+    /// Replace the exports of the [Component] being built.
+    pub fn with_exports(
+        mut self,
+        exports: BTreeMap<InterfaceFunctionIdent, ComponentExport>,
+    ) -> Self {
+        self.exports = exports;
+        self
     }
 
     /// Add `module` to the set of modules to link into the final [Component]
@@ -413,12 +433,20 @@ impl<'a> ComponentBuilder<'a> {
         }
     }
 
+    /// Add an import to the [Component] being built. Overwrites any existing import with the same
+    /// `function_id`.
     pub fn add_import(&mut self, function_id: FunctionIdent, import: ComponentImport) {
         self.imports.insert(function_id, import);
     }
 
+    /// Add an export to the [Component] being built. Overwrites any existing export with the same
+    /// `name`.
     pub fn add_export(&mut self, name: InterfaceFunctionIdent, export: ComponentExport) {
         self.exports.insert(name, export);
+    }
+
+    pub fn exports(&self) -> &BTreeMap<InterfaceFunctionIdent, ComponentExport> {
+        &self.exports
     }
 
     pub fn build(self) -> Component {
