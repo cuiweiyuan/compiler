@@ -403,6 +403,12 @@ impl<'a> ComponentBuilder<'a> {
         self
     }
 
+    /// Replace the imports of the [Component] being built.
+    pub fn with_imports(mut self, imports: BTreeMap<FunctionIdent, ComponentImport>) -> Self {
+        self.imports = imports;
+        self
+    }
+
     /// Add `module` to the set of modules to link into the final [Component]
     ///
     /// Returns `Err` if a module with the same name already exists
@@ -443,6 +449,10 @@ impl<'a> ComponentBuilder<'a> {
     /// `name`.
     pub fn add_export(&mut self, name: InterfaceFunctionIdent, export: ComponentExport) {
         self.exports.insert(name, export);
+    }
+
+    pub fn imports(&self) -> &BTreeMap<FunctionIdent, ComponentImport> {
+        &self.imports
     }
 
     pub fn exports(&self) -> &BTreeMap<InterfaceFunctionIdent, ComponentExport> {
