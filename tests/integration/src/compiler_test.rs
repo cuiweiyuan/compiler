@@ -445,7 +445,7 @@ impl CompilerTestBuilder {
                         },
                     )
                 }));
-                dbg!(&inputs);
+                // dbg!(&inputs);
 
                 CompilerTest {
                     config: self.config,

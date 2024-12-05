@@ -117,7 +117,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
             }
         }
         for (name, export) in &wasm_translation.component.exports {
-            self.build_export(export, name, None, &mut component_builder)?;
+            self.build_export(export, name.clone(), None, &mut component_builder)?;
         }
         Ok(component_builder.build())
     }
@@ -353,13 +353,13 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
     fn build_export(
         &self,
         export: &Export,
-        name: &String,
+        name: String,
         interface: Option<String>,
         component_builder: &mut ComponentBuilder,
     ) -> WasmResult<()> {
         match export {
             Export::LiftedFunction { ty, func, options } => {
-                dbg!(name);
+                // dbg!(name);
                 // The inline export does no have an interface name
                 let interface = interface.unwrap_or_default();
                 // dbg!(&interface);
@@ -372,7 +372,12 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 let interface = Some(name.clone());
                 // Flatten any(nested) interface instance exports into the IR `Component` exports
                 for (export_name, export) in exports {
-                    self.build_export(export, export_name, interface.clone(), component_builder)?;
+                    self.build_export(
+                        export,
+                        export_name.clone(),
+                        interface.clone(),
+                        component_builder,
+                    )?;
                 }
                 Ok(())
             }

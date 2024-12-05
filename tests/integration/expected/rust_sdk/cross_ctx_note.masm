@@ -1,3 +1,12 @@
+# mod #anon::lift-imports-miden:cross-ctx-account/foo@1.0.0
+
+use.miden:cross-ctx-account/foo@1.0.0
+
+export."process-felt"
+    call.::miden:cross-ctx-account/foo@1.0.0::"process-felt"
+end
+
+
 # mod cross_ctx_note
 
 use.intrinsics::mem

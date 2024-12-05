@@ -91,7 +91,7 @@ impl MidenAbiImport {
 }
 
 /// A component import
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::From)]
 pub enum ComponentImport {
     /// A Wasm import that is following the Wasm Component Model Canonical ABI
     CanonAbiImport(CanonAbiImport),
@@ -193,7 +193,7 @@ impl Component {
         // Temporary imterim solution until we have a proper way to name components
         let module_names = self.modules.keys().fold(String::new(), |acc, name| {
             if acc.is_empty() {
-                name.to_string()
+                name.as_str().to_string()
             } else {
                 acc + "+" + name.as_str()
             }

@@ -163,11 +163,11 @@ fn rust_sdk_cross_ctx_note() {
     .iter()
     .map(|s| s.to_string())
     .collect();
-    dbg!(env::current_dir().unwrap().display());
+    // dbg!(env::current_dir().unwrap().display());
     let outputs = cargo_miden::run(args.into_iter(), cargo_miden::OutputType::Masm)
         .expect("Failed to compile the cross-ctx-account package for cross-ctx-note");
     let masp_path: PathBuf = outputs.first().unwrap().clone();
-    dbg!(&masp_path);
+    // dbg!(&masp_path);
 
     let _ = env_logger::builder().is_test(true).try_init();
 

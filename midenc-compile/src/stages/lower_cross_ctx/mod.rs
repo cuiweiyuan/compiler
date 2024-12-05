@@ -3,9 +3,11 @@
 use std::collections::BTreeMap;
 
 use midenc_hir::{
-    diagnostics::Severity, pass::AnalysisManager, types::Abi::Canonical, AbiParam, CallConv,
-    ComponentBuilder, ComponentExport, FunctionType, InstBuilder, InterfaceFunctionIdent, Linkage,
-    Signature, SourceSpan, Type,
+    diagnostics::Severity,
+    pass::AnalysisManager,
+    types::Abi::{self, Canonical},
+    AbiParam, CallConv, ComponentBuilder, ComponentExport, FunctionType, InstBuilder,
+    InterfaceFunctionIdent, Linkage, Signature, SourceSpan, Type,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
@@ -45,6 +47,9 @@ impl Stage for LowerExportsCrossCtxStage {
             return Ok(input);
         };
 
+        // dbg!(&component.exports());
+        // dbg!(&component.modules().keys());
+
         let mut component_builder = ComponentBuilder::load(*component, &session.diagnostics);
 
         let mut lowered_exports: BTreeMap<InterfaceFunctionIdent, ComponentExport> =
@@ -80,6 +85,10 @@ impl Stage for LowerExportsCrossCtxStage {
         let component_builder = component_builder.with_exports(lowered_exports);
 
         let component = component_builder.build();
+
+        // dbg!(&component.exports());
+        // dbg!(&component.modules().keys());
+
         Ok(LinkerInput::Hir(component.into()))
     }
 }
@@ -126,9 +135,8 @@ fn generate_lowering_function(
         dfg.import_function(export.function.module, export.function.function, core_sig)
             .map_err(|_e| {
                 let message = format!(
-                    "Function(callee of the lowering) with name {} in module {} with signature \
-                     {cc_export_sig:?} is already imported (function call) with a different \
-                     signature",
+                    "Lowering function with name {} in module {} with signature {cc_export_sig:?} \
+                     is already imported (function call) with a different signature",
                     export.function.function, export.function.module
                 );
                 diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
@@ -145,7 +153,7 @@ fn generate_lowering_function(
     let component_export = ComponentExport {
         function: function_id,
         function_ty: FunctionType {
-            abi: Canonical,
+            abi: Abi::Canonical,
             ..export.function_ty
         },
         ..export
