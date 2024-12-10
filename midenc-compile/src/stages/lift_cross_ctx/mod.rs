@@ -1,11 +1,11 @@
 //! Lifting the imports into the Miden ABI for the cross-context calls
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use midenc_hir::{
-    diagnostics::Severity, pass::AnalysisManager, types::Abi, AbiParam, CallConv, CanonAbiImport,
-    ComponentBuilder, ComponentImport, FunctionIdent, FunctionType, InstBuilder, Linkage,
-    MidenAbiImport, Signature, SourceSpan, Symbol, Type,
+    diagnostics::Severity, pass::AnalysisManager, types::Abi, AbiParam, Block, Call, CallConv,
+    ComponentBuilder, ComponentImport, Function, FunctionIdent, FunctionType, InstBuilder,
+    Instruction, Linkage, MidenAbiImport, Signature, SourceSpan, Symbol, Type, UnsafeRef,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
@@ -28,7 +28,7 @@ impl Stage for LiftImportsCrossCtxStage {
     fn run(
         &mut self,
         input: Self::Input,
-        _analyses: &mut AnalysisManager,
+        analyses: &mut AnalysisManager,
         session: &Session,
     ) -> CompilerResult<Self::Output> {
         let component = if let LinkerInput::Hir(component) = input {
@@ -55,15 +55,25 @@ impl Stage for LiftImportsCrossCtxStage {
                 lifted_imports.insert(id, import);
                 continue;
             }
+            let cabi_import = import.unwrap_canon_abi_import();
+            let import_func_id = FunctionIdent {
+                module: cabi_import.interface_function.interface.full_name.into(),
+                function: cabi_import.interface_function.function.into(),
+            };
             let (new_import, lifting_func_id) = generate_lifting_function(
                 &mut component_builder,
-                id,
-                import.unwrap_canon_abi_import(),
+                import_func_id,
                 &session.diagnostics,
             )?;
             lifted_imports.insert(lifting_func_id, new_import.into());
 
-            // TODO: find all the calls to the component import and replace them with the generated lifting function
+            call_lifting_function(
+                &mut component_builder,
+                lifting_func_id,
+                import_func_id,
+                analyses,
+                session,
+            )?;
         }
 
         let component_builder = component_builder.with_imports(lifted_imports);
@@ -77,20 +87,18 @@ impl Stage for LiftImportsCrossCtxStage {
     }
 }
 
+/// Generates the lifting function (cross-context Miden ABI -> Wasm CABI) for the given import function.
 fn generate_lifting_function(
     component_builder: &mut ComponentBuilder<'_>,
-    _core_import_function: FunctionIdent,
-    import: &CanonAbiImport,
+    import_func_id: FunctionIdent,
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<(MidenAbiImport, FunctionIdent)> {
     // get or create the module for the interface
-    let module_id = Symbol::intern(format!(
-        "lift-imports-{}",
-        import.interface_function.interface.full_name.as_str()
-    ));
-    dbg!(&module_id);
+    let lifting_module_id =
+        Symbol::intern(format!("lift-imports-{}", import_func_id.module.as_str()));
+    dbg!(&lifting_module_id);
     // TODO: prefix the module name with "lift-imports-"? The same for the lowering exports module.
-    let mut module_builder = component_builder.module(module_id);
+    let mut module_builder = component_builder.module(lifting_module_id);
     // TODO: put the core function signature (as imported in the core module) in the component import
     let import_core_sig = Signature {
         params: vec![AbiParam::new(Type::Felt)],
@@ -98,8 +106,7 @@ fn generate_lifting_function(
         cc: CallConv::SystemV,
         linkage: Linkage::External,
     };
-    let mut builder =
-        module_builder.function(import.interface_function.function, import_core_sig.clone())?;
+    let mut builder = module_builder.function(import_func_id.function, import_core_sig.clone())?;
     let entry = builder.current_block();
     let params = builder.block_params(entry).to_vec();
 
@@ -114,11 +121,6 @@ fn generate_lifting_function(
         linkage: Linkage::External,
     };
     let dfg = builder.data_flow_graph_mut();
-    // import the Wasm CM interface function
-    let import_func_id = FunctionIdent {
-        module: import.interface_function.interface.full_name.into(),
-        function: import.interface_function.function.into(),
-    };
     if dfg.get_import(&import_func_id).is_none() {
         dfg.import_function(
             import_func_id.module,
@@ -152,4 +154,120 @@ fn generate_lifting_function(
     // dbg!(&function_id);
 
     Ok((component_import, function_id))
+}
+
+/// Rewrites the calls to the function `from` to the function `to` in the given function.
+/// Returns `true` if any call was rewritten.
+fn rewrite_calls(function: &mut Function, from: FunctionIdent, to: FunctionIdent) -> bool {
+    let mut dirty = false;
+    let mut worklist = VecDeque::<Block>::default();
+    for block in function.dfg.blocks.keys() {
+        worklist.push_back(block);
+    }
+
+    for b in worklist {
+        let block = &mut function.dfg.blocks[b];
+        // Take the list of instructions away from the block to simplify traversing the block
+        let mut insts = block.insts.take();
+        // Take each instruction out of the list, top to bottom, modify it, then
+        // add it back to the instruction list of the block directly. This ensures
+        // we traverse the list and rewrite instructions in a single pass without
+        // any additional overhead
+        while let Some(inst) = insts.pop_front() {
+            let mut inst = unsafe { UnsafeRef::into_box(inst) };
+            let instruction: &mut Instruction = inst.as_mut();
+            match instruction {
+                Instruction::Call(Call { ref mut callee, .. }) => {
+                    // Rewrite the call instruction
+                    // rewrite_call(call, &mut function.dfg.value_lists, rewrites);
+                    if callee == &from {
+                        *callee = to;
+                        dirty = true;
+                    }
+                }
+                _op => (),
+            }
+
+            block.insts.push_back(UnsafeRef::from_box(inst));
+        }
+    }
+    dirty
+}
+
+/// Replaces calls to the imported functions with calls to the lifting functions.
+fn call_lifting_function(
+    component_builder: &mut ComponentBuilder<'_>,
+    lifting_func_id: FunctionIdent,
+    import_func_id: FunctionIdent,
+    analyses: &mut AnalysisManager,
+    session: &Session,
+) -> Result<(), miden_assembly::Report> {
+    let mut modules = Vec::new();
+    for (id, mut module) in component_builder.take_modules() {
+        if module.name == lifting_func_id.module {
+            // Skip the module with the lifting function
+            modules.push((id, module));
+            continue;
+        }
+        // Removing a function via this cursor will move the cursor to
+        // the next function in the module. Once the end of the module
+        // is reached, the cursor will point to the null object, and
+        // `remove` will return `None`.
+        let mut cursor = module.cursor_mut();
+        // let mut dirty = false;
+        while let Some(mut function) = cursor.remove() {
+            // // Apply rewrite
+            // if self.0.should_apply(&function, session) {
+            //     dirty = true;
+            //     self.0.apply(&mut function, analyses, session)?;
+            //     analyses.invalidate::<crate::Function>(&function.id);
+            // }
+
+            // TODO: put the core function signature (as imported in the core module) in the component import
+            // as in the generate_lifting_function
+            let import_core_sig = Signature {
+                params: vec![AbiParam::new(Type::Felt)],
+                results: vec![AbiParam::new(Type::Felt)],
+                cc: CallConv::SystemV,
+                linkage: Linkage::External,
+            };
+
+            if rewrite_calls(&mut function, import_func_id, lifting_func_id) {
+                // Invalidate the analyses for the function since we've modified it
+                analyses.invalidate::<Function>(&function.id);
+                // Import the lifting function if it's not already imported
+                let dfg = &mut function.dfg;
+                if dfg.get_import(&lifting_func_id).is_none() {
+                    dfg.import_function(
+                        lifting_func_id.module,
+                        lifting_func_id.function,
+                        import_core_sig.clone(),
+                    )
+                    .map_err(|_e| {
+                        let message = format!(
+                            "Lifting function with name {} in module {} with signature \
+                             {import_core_sig:?} is already imported (function call) with a \
+                             different signature",
+                            import_func_id.function, import_func_id.module
+                        );
+                        session
+                            .diagnostics
+                            .diagnostic(Severity::Error)
+                            .with_message(message)
+                            .into_report()
+                    })?;
+                }
+            }
+
+            // Add the function back to the module
+            //
+            // We add it before the current position of the cursor
+            // to ensure that we don't interfere with our traversal
+            // of the module top to bottom
+            cursor.insert_before(function);
+        }
+        modules.push((id, module));
+    }
+    component_builder.set_modules(modules.into_iter().collect());
+    Ok(())
 }

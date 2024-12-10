@@ -206,11 +206,12 @@ impl Component {
         &self.modules
     }
 
+    /// Consume this component and return its modules
     pub fn to_modules(mut self) -> Vec<(Ident, Box<Module>)> {
         self.modules.drain(..).collect()
     }
 
-    /// Return a mutable reference to the module table for this program
+    /// Drains the modules from this component and returns a mutable reference to them
     pub fn modules_mut(&mut self) -> &mut IndexMap<Ident, Box<Module>> {
         &mut self.modules
     }
@@ -457,6 +458,16 @@ impl<'a> ComponentBuilder<'a> {
 
     pub fn exports(&self) -> &BTreeMap<InterfaceFunctionIdent, ComponentExport> {
         &self.exports
+    }
+
+    /// Takes the modules from this component builder leaving it with empty modules list
+    pub fn take_modules(&mut self) -> impl Iterator<Item = (Ident, Box<Module>)> + '_ {
+        self.modules.drain(..)
+    }
+
+    /// Set the modules of this component
+    pub fn set_modules(&mut self, modules: IndexMap<Ident, Box<Module>>) {
+        self.modules = modules;
     }
 
     pub fn build(self) -> Component {
