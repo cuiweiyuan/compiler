@@ -52,7 +52,10 @@ pub struct CanonAbiImport {
     /// The interfact function name that is being imported
     pub interface_function: InterfaceFunctionIdent,
     /// The component(lifted) type of the imported function
-    function_ty: FunctionType,
+    high_func_ty: FunctionType,
+    /// The function type  of the imported function in the module
+    /// (low-level from core Wasm)
+    low_func_ty: FunctionType,
     /// Any options associated with this import
     pub options: CanonicalOptions,
 }
@@ -60,19 +63,21 @@ pub struct CanonAbiImport {
 impl CanonAbiImport {
     pub fn new(
         interface_function: InterfaceFunctionIdent,
-        function_ty: FunctionType,
+        high_func_ty: FunctionType,
+        low_func_ty: FunctionType,
         options: CanonicalOptions,
     ) -> Self {
-        assert_eq!(function_ty.abi, Abi::Wasm, "expected Abi::Wasm function type ABI");
+        assert_eq!(high_func_ty.abi, Abi::Wasm, "expected Abi::Wasm function type ABI");
         Self {
             interface_function,
-            function_ty,
+            high_func_ty,
+            low_func_ty,
             options,
         }
     }
 
-    pub fn function_ty(&self) -> &FunctionType {
-        &self.function_ty
+    pub fn low_func_ty(&self) -> &FunctionType {
+        &self.low_func_ty
     }
 }
 
@@ -118,7 +123,7 @@ impl formatter::PrettyPrint for ComponentImport {
     fn render(&self) -> formatter::Document {
         use crate::formatter::*;
         let function_ty_str = match self {
-            ComponentImport::CanonAbiImport(import) => import.function_ty.to_string(),
+            ComponentImport::CanonAbiImport(import) => import.high_func_ty.to_string(),
             ComponentImport::MidenAbiImport(import) => import.function_ty.to_string(),
         };
         let name = match self {

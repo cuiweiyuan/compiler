@@ -4,7 +4,7 @@ use midenc_hir::{
     MidenAbiImport, Symbol,
 };
 use midenc_hir_type::Abi;
-use midenc_session::Session;
+use midenc_session::{DiagnosticsHandler, Session};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -25,7 +25,7 @@ use crate::{
         instance::ModuleArgument,
         module_env::ParsedModule,
         module_translation_state::ModuleTranslationState,
-        types::{EntityIndex, FuncIndex},
+        types::{ir_func_type, EntityIndex, FuncIndex},
         Module,
     },
     unsupported_diag, WasmTranslationConfig,
@@ -73,6 +73,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
     pub fn translate(
         mut self,
         wasm_translation: LinearComponentTranslation,
+        diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<midenc_hir::Component> {
         let mut component_builder: midenc_hir::ComponentBuilder<'a> =
             midenc_hir::ComponentBuilder::new(&self.session.diagnostics);
@@ -84,6 +85,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                         instantiate_module,
                         &mut component_builder,
                         &wasm_translation,
+                        diagnostics,
                     )?;
                 }
                 GlobalInitializer::LowerImport {
@@ -128,6 +130,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         instantiate_module: &InstantiateModule,
         component_builder: &mut ComponentBuilder<'_>,
         wasm_translation: &LinearComponentTranslation,
+        diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<()> {
         match instantiate_module {
             InstantiateModule::Static(static_module_idx, args) => {
@@ -163,6 +166,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                                 idx,
                                 &wasm_translation.component,
                                 component_builder,
+                                diagnostics,
                             )? {
                                 module_args.push(arg)
                             }
@@ -218,6 +222,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         idx: usize,
         wasm_component: &LinearComponent,
         component_builder: &mut ComponentBuilder<'_>,
+        diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<Option<ModuleArgument>> {
         match trampoline {
             Trampoline::LowerImport {
@@ -226,11 +231,17 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 options,
             } => {
                 let module_import = module.imports.get(idx).expect("module import not found");
-                let function_id = module.func_name(module_import.index.unwrap_func()).into();
+                let func_index = module_import.index.unwrap_func();
+                let function_id = module.func_name(func_index).into();
                 let function_id = FunctionIdent {
                     module: module.name(),
                     function: function_id,
                 };
+
+                let func_type = &module.functions[func_index];
+                let module_types = self.component_types.module_types();
+                let wasm_func_type = module_types[func_type.signature].clone();
+                let low_func_ty = ir_func_type(&wasm_func_type, diagnostics)?;
 
                 // TODO:
                 // Find process_list_felt instead empty module name and "0" function name!
@@ -241,6 +252,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 match self.translate_import(
                     runtime_import_idx,
                     *lower_ty,
+                    low_func_ty,
                     options,
                     wasm_component,
                 )? {
@@ -300,7 +312,8 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
     fn translate_import(
         &self,
         runtime_import_index: RuntimeImportIndex,
-        signature: TypeFuncIndex,
+        high_func_ty: TypeFuncIndex,
+        low_func_ty: FunctionType,
         options: &CanonicalOptions,
         wasm_component: &LinearComponent,
     ) -> WasmResult<Option<midenc_hir::ComponentImport>> {
@@ -338,11 +351,12 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 interface: InterfaceIdent::from_full_ident(&full_interface_name),
                 function: Symbol::intern(import_func_name),
             };
-            let lifted_func_ty = convert_lifted_func_ty(&signature, &self.component_types);
+            let lifted_func_ty = convert_lifted_func_ty(&high_func_ty, &self.component_types);
             let component_import =
                 midenc_hir::ComponentImport::CanonAbiImport(CanonAbiImport::new(
                     interface_function,
                     lifted_func_ty,
+                    low_func_ty,
                     self.translate_canonical_options(options)?,
                 ));
             Ok(Some(component_import))

@@ -63,6 +63,7 @@ impl Stage for LiftImportsCrossCtxStage {
             let (new_import, lifting_func_id) = generate_lifting_function(
                 &mut component_builder,
                 import_func_id,
+                cabi_import.low_func_ty().clone(),
                 &session.diagnostics,
             )?;
             lifted_imports.insert(lifting_func_id, new_import.into());
@@ -71,6 +72,7 @@ impl Stage for LiftImportsCrossCtxStage {
                 &mut component_builder,
                 lifting_func_id,
                 import_func_id,
+                cabi_import.low_func_ty().clone(),
                 analyses,
                 session,
             )?;
@@ -91,18 +93,17 @@ impl Stage for LiftImportsCrossCtxStage {
 fn generate_lifting_function(
     component_builder: &mut ComponentBuilder<'_>,
     import_func_id: FunctionIdent,
+    import_func_ty: FunctionType,
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<(MidenAbiImport, FunctionIdent)> {
     // get or create the module for the interface
     let lifting_module_id =
         Symbol::intern(format!("lift-imports-{}", import_func_id.module.as_str()));
-    dbg!(&lifting_module_id);
-    // TODO: prefix the module name with "lift-imports-"? The same for the lowering exports module.
+    // dbg!(&lifting_module_id);
     let mut module_builder = component_builder.module(lifting_module_id);
-    // TODO: put the core function signature (as imported in the core module) in the component import
     let import_core_sig = Signature {
-        params: vec![AbiParam::new(Type::Felt)],
-        results: vec![AbiParam::new(Type::Felt)],
+        params: import_func_ty.params.into_iter().map(AbiParam::new).collect(),
+        results: import_func_ty.results.into_iter().map(AbiParam::new).collect(),
         cc: CallConv::SystemV,
         linkage: Linkage::External,
     };
@@ -199,9 +200,16 @@ fn call_lifting_function(
     component_builder: &mut ComponentBuilder<'_>,
     lifting_func_id: FunctionIdent,
     import_func_id: FunctionIdent,
+    import_func_ty: FunctionType,
     analyses: &mut AnalysisManager,
     session: &Session,
 ) -> Result<(), miden_assembly::Report> {
+    let import_core_sig = Signature {
+        params: import_func_ty.params.into_iter().map(AbiParam::new).collect(),
+        results: import_func_ty.results.into_iter().map(AbiParam::new).collect(),
+        cc: CallConv::SystemV,
+        linkage: Linkage::External,
+    };
     let mut modules = Vec::new();
     for (id, mut module) in component_builder.take_modules() {
         if module.name == lifting_func_id.module {
@@ -214,24 +222,7 @@ fn call_lifting_function(
         // is reached, the cursor will point to the null object, and
         // `remove` will return `None`.
         let mut cursor = module.cursor_mut();
-        // let mut dirty = false;
         while let Some(mut function) = cursor.remove() {
-            // // Apply rewrite
-            // if self.0.should_apply(&function, session) {
-            //     dirty = true;
-            //     self.0.apply(&mut function, analyses, session)?;
-            //     analyses.invalidate::<crate::Function>(&function.id);
-            // }
-
-            // TODO: put the core function signature (as imported in the core module) in the component import
-            // as in the generate_lifting_function
-            let import_core_sig = Signature {
-                params: vec![AbiParam::new(Type::Felt)],
-                results: vec![AbiParam::new(Type::Felt)],
-                cc: CallConv::SystemV,
-                linkage: Linkage::External,
-            };
-
             if rewrite_calls(&mut function, import_func_id, lifting_func_id) {
                 // Invalidate the analyses for the function since we've modified it
                 analyses.invalidate::<Function>(&function.id);
