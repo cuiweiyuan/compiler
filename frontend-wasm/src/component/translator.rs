@@ -25,7 +25,7 @@ use crate::{
         instance::ModuleArgument,
         module_env::ParsedModule,
         module_translation_state::ModuleTranslationState,
-        types::{ir_func_type, EntityIndex, FuncIndex},
+        types::{EntityIndex, FuncIndex},
         Module,
     },
     unsupported_diag, WasmTranslationConfig,
@@ -222,7 +222,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         idx: usize,
         wasm_component: &LinearComponent,
         component_builder: &mut ComponentBuilder<'_>,
-        diagnostics: &DiagnosticsHandler,
+        _diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<Option<ModuleArgument>> {
         match trampoline {
             Trampoline::LowerImport {
@@ -238,11 +238,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                     function: function_id,
                 };
 
-                let func_type = &module.functions[func_index];
-                let module_types = self.component_types.module_types();
-                let wasm_func_type = module_types[func_type.signature].clone();
-                let low_func_ty = ir_func_type(&wasm_func_type, diagnostics)?;
-
                 // TODO:
                 // Find process_list_felt instead empty module name and "0" function name!
                 // Follow module_import.index through the shim modules/imports/exports?
@@ -252,7 +247,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 match self.translate_import(
                     runtime_import_idx,
                     *lower_ty,
-                    low_func_ty,
                     options,
                     wasm_component,
                 )? {
@@ -313,7 +307,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         &self,
         runtime_import_index: RuntimeImportIndex,
         high_func_ty: TypeFuncIndex,
-        low_func_ty: FunctionType,
         options: &CanonicalOptions,
         wasm_component: &LinearComponent,
     ) -> WasmResult<Option<midenc_hir::ComponentImport>> {
@@ -356,7 +349,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 midenc_hir::ComponentImport::CanonAbiImport(CanonAbiImport::new(
                     interface_function,
                     lifted_func_ty,
-                    low_func_ty,
                     self.translate_canonical_options(options)?,
                 ));
             Ok(Some(component_import))

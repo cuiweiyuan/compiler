@@ -53,9 +53,6 @@ pub struct CanonAbiImport {
     pub interface_function: InterfaceFunctionIdent,
     /// The component(lifted) type of the imported function
     high_func_ty: FunctionType,
-    /// The function type  of the imported function in the module
-    /// (low-level from core Wasm)
-    low_func_ty: FunctionType,
     /// Any options associated with this import
     pub options: CanonicalOptions,
 }
@@ -64,20 +61,14 @@ impl CanonAbiImport {
     pub fn new(
         interface_function: InterfaceFunctionIdent,
         high_func_ty: FunctionType,
-        low_func_ty: FunctionType,
         options: CanonicalOptions,
     ) -> Self {
         assert_eq!(high_func_ty.abi, Abi::Wasm, "expected Abi::Wasm function type ABI");
         Self {
             interface_function,
             high_func_ty,
-            low_func_ty,
             options,
         }
-    }
-
-    pub fn low_func_ty(&self) -> &FunctionType {
-        &self.low_func_ty
     }
 }
 
@@ -463,6 +454,29 @@ impl<'a> ComponentBuilder<'a> {
 
     pub fn exports(&self) -> &BTreeMap<InterfaceFunctionIdent, ComponentExport> {
         &self.exports
+    }
+
+    /// Look up the signature of a function in this program by `id`
+    pub fn signature(&self, id: &FunctionIdent) -> Option<&Signature> {
+        let module = self.modules.get(&id.module)?;
+        module.function(id.function).map(|f| &f.signature)
+    }
+
+    /// Look up the signature of an imported function by `id`
+    ///
+    /// NOTE: Due to the imports are stored on the function level this searches in **all** functions of
+    /// **all** modules of this component.
+    pub fn import_signature(&self, id: &FunctionIdent) -> Option<&Signature> {
+        for module in self.modules.values() {
+            for function in module.functions.iter() {
+                for import in function.imports() {
+                    if &import.id == id {
+                        return Some(&import.signature);
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// Takes the modules from this component builder leaving it with empty modules list

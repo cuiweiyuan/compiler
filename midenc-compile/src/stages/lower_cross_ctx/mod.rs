@@ -25,9 +25,6 @@ use crate::{stage::Stage, CompilerResult};
 /// cross-context calls, i.e. using the stack and the advice provider for arguments and results.
 pub struct LowerExportsCrossCtxStage;
 
-// TODO: load the rodata into the memory in the lowering to ensure that the fresh context is
-// correctly initialized
-
 // TODO: swap `lift` and `lower` in the component import/export pretty-printing to sync with
 // this stage's terminology (an export is lowered, an import is lifted)
 
@@ -105,38 +102,45 @@ fn generate_lowering_function(
     {
         return Ok(export);
     }
+
+    let export_func_sig = component_builder
+        .signature(&export.function)
+        .ok_or({
+            let message = format!(
+                "Miden CCABI export lowering generation. Cannot find signature for exported \
+                 function {}",
+                export.function
+            );
+            diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
+        })?
+        .clone();
+
     // get or create the module for the interface
     let module_id = export_id.interface.full_name;
     let mut module_builder = component_builder.module(module_id);
     // TODO: analyze the signature and speculate what cross-context Miden ABI signature we need to export.
     // For now just assume passing <16 felts and returning 1 and copy the signature
-    let cc_export_sig = Signature {
+    let cross_ctx_export_sig = Signature {
         params: vec![AbiParam::new(Type::Felt)],
         results: vec![AbiParam::new(Type::Felt)],
         // TODO: add CallConv::CrossCtx
         cc: CallConv::SystemV,
         linkage: Linkage::External,
     };
-    let mut builder = module_builder.function(export_id.function, cc_export_sig.clone())?;
+    let mut builder = module_builder.function(export_id.function, cross_ctx_export_sig.clone())?;
     let entry = builder.current_block();
     let params = builder.block_params(entry).to_vec();
     // TODO: lift the params from the cross-context Miden ABI to the Wasm CABI
 
-    // TODO: put the core function signature in the export
-    let core_sig = Signature {
-        params: vec![AbiParam::new(Type::Felt)],
-        results: vec![AbiParam::new(Type::Felt)],
-        cc: CallConv::SystemV,
-        linkage: Linkage::Internal,
-    };
     let dfg = builder.data_flow_graph_mut();
     // import the Wasm core function
     if dfg.get_import(&export.function).is_none() {
-        dfg.import_function(export.function.module, export.function.function, core_sig)
+        dfg.import_function(export.function.module, export.function.function, export_func_sig)
             .map_err(|_e| {
                 let message = format!(
-                    "Lowering function with name {} in module {} with signature {cc_export_sig:?} \
-                     is already imported (function call) with a different signature",
+                    "Miden CCABI export lowering generation. Lowering function with name {} in \
+                     module {} with signature {cross_ctx_export_sig:?} is already imported \
+                     (function call) with a different signature",
                     export.function.function, export.function.module
                 );
                 diagnostics.diagnostic(Severity::Error).with_message(message).into_report()

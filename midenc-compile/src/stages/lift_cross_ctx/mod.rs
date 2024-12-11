@@ -49,10 +49,10 @@ impl Stage for LiftImportsCrossCtxStage {
 
         let mut lifted_imports: BTreeMap<FunctionIdent, ComponentImport> = BTreeMap::new();
         let imports = component_builder.imports().clone();
-        for (id, import) in imports.into_iter() {
+        for (core_import_func_id, import) in imports.into_iter() {
             if let ComponentImport::MidenAbiImport(_) = import {
                 // skip imports that are already lifted
-                lifted_imports.insert(id, import);
+                lifted_imports.insert(core_import_func_id, import);
                 continue;
             }
             let cabi_import = import.unwrap_canon_abi_import();
@@ -60,10 +60,27 @@ impl Stage for LiftImportsCrossCtxStage {
                 module: cabi_import.interface_function.interface.full_name.into(),
                 function: cabi_import.interface_function.function.into(),
             };
+
+            let import_func_sig = component_builder
+                .import_signature(&import_func_id)
+                .ok_or({
+                    let message = format!(
+                        "Miden CCABI import lifting generation. Cannot find signature for Wasm \
+                         CABI imported function {}",
+                        import_func_id
+                    );
+                    session
+                        .diagnostics
+                        .diagnostic(Severity::Error)
+                        .with_message(message)
+                        .into_report()
+                })?
+                .clone();
+
             let (new_import, lifting_func_id) = generate_lifting_function(
                 &mut component_builder,
                 import_func_id,
-                cabi_import.low_func_ty().clone(),
+                import_func_sig.clone(),
                 &session.diagnostics,
             )?;
             lifted_imports.insert(lifting_func_id, new_import.into());
@@ -72,7 +89,7 @@ impl Stage for LiftImportsCrossCtxStage {
                 &mut component_builder,
                 lifting_func_id,
                 import_func_id,
-                cabi_import.low_func_ty().clone(),
+                import_func_sig,
                 analyses,
                 session,
             )?;
@@ -93,7 +110,7 @@ impl Stage for LiftImportsCrossCtxStage {
 fn generate_lifting_function(
     component_builder: &mut ComponentBuilder<'_>,
     import_func_id: FunctionIdent,
-    import_func_ty: FunctionType,
+    import_func_sig: Signature,
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<(MidenAbiImport, FunctionIdent)> {
     // get or create the module for the interface
@@ -101,13 +118,8 @@ fn generate_lifting_function(
         Symbol::intern(format!("lift-imports-{}", import_func_id.module.as_str()));
     // dbg!(&lifting_module_id);
     let mut module_builder = component_builder.module(lifting_module_id);
-    let import_core_sig = Signature {
-        params: import_func_ty.params.into_iter().map(AbiParam::new).collect(),
-        results: import_func_ty.results.into_iter().map(AbiParam::new).collect(),
-        cc: CallConv::SystemV,
-        linkage: Linkage::External,
-    };
-    let mut builder = module_builder.function(import_func_id.function, import_core_sig.clone())?;
+
+    let mut builder = module_builder.function(import_func_id.function, import_func_sig)?;
     let entry = builder.current_block();
     let params = builder.block_params(entry).to_vec();
 
@@ -200,16 +212,10 @@ fn call_lifting_function(
     component_builder: &mut ComponentBuilder<'_>,
     lifting_func_id: FunctionIdent,
     import_func_id: FunctionIdent,
-    import_func_ty: FunctionType,
+    import_func_sig: Signature,
     analyses: &mut AnalysisManager,
     session: &Session,
 ) -> Result<(), miden_assembly::Report> {
-    let import_core_sig = Signature {
-        params: import_func_ty.params.into_iter().map(AbiParam::new).collect(),
-        results: import_func_ty.results.into_iter().map(AbiParam::new).collect(),
-        cc: CallConv::SystemV,
-        linkage: Linkage::External,
-    };
     let mut modules = Vec::new();
     for (id, mut module) in component_builder.take_modules() {
         if module.name == lifting_func_id.module {
@@ -232,12 +238,12 @@ fn call_lifting_function(
                     dfg.import_function(
                         lifting_func_id.module,
                         lifting_func_id.function,
-                        import_core_sig.clone(),
+                        import_func_sig.clone(),
                     )
                     .map_err(|_e| {
                         let message = format!(
                             "Lifting function with name {} in module {} with signature \
-                             {import_core_sig:?} is already imported (function call) with a \
+                             {import_func_sig:?} is already imported (function call) with a \
                              different signature",
                             import_func_id.function, import_func_id.module
                         );
