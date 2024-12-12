@@ -11,8 +11,7 @@ use midenc_hir::{
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
-use super::LinkerInput;
-use crate::{stage::Stage, CompilerResult};
+use crate::{stage::Stage, CompilerResult, LinkerInput};
 
 /// Generates lowering for exports for the cross-context calls according to the Miden ABI.
 ///
@@ -96,10 +95,11 @@ fn generate_lowering_function(
     export: ComponentExport,
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<ComponentExport> {
-    // So far we only hardcoded the lowering for the process-felt function
+    // TODO: remove after handling the lowering for all exports!
     if export_id.interface.to_string() != "miden:cross-ctx-account/foo@1.0.0"
         && export_id.function.as_str() != "process-felt"
     {
+        // So far we only hardcoded the lowering for the process-felt function
         return Ok(export);
     }
 
@@ -135,16 +135,20 @@ fn generate_lowering_function(
     let dfg = builder.data_flow_graph_mut();
     // import the Wasm core function
     if dfg.get_import(&export.function).is_none() {
-        dfg.import_function(export.function.module, export.function.function, export_func_sig)
-            .map_err(|_e| {
-                let message = format!(
-                    "Miden CCABI export lowering generation. Lowering function with name {} in \
-                     module {} with signature {cross_ctx_export_sig:?} is already imported \
-                     (function call) with a different signature",
-                    export.function.function, export.function.module
-                );
-                diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
-            })?;
+        dfg.import_function(
+            export.function.module,
+            export.function.function,
+            export_func_sig.clone(),
+        )
+        .map_err(|_e| {
+            let message = format!(
+                "Miden CCABI export lowering generation. Lowering function with name {} in module \
+                 {} with signature {export_func_sig:?} is already imported (function call) with a \
+                 different signature",
+                export.function.function, export.function.module
+            );
+            diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
+        })?;
     }
     // TODO: use the span from the callee
     let call = builder.ins().exec(export.function, &params, SourceSpan::UNKNOWN);

@@ -9,8 +9,7 @@ use midenc_hir::{
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
-use super::LinkerInput;
-use crate::{stage::Stage, CompilerResult};
+use crate::{stage::Stage, CompilerResult, LinkerInput};
 
 /// Generates lifting for imports for the cross-context calls according to the Miden ABI.
 ///
@@ -37,8 +36,9 @@ impl Stage for LiftImportsCrossCtxStage {
             return Ok(input);
         };
 
-        // So far only hardcoded lift imports for the cross_ctx_note
+        // TODO: remove after handling the lifting for all imports!
         if component.name().as_str() != "cross_ctx_note" {
+            // So far only hardcoded lift imports for the cross_ctx_note
             return Ok(LinkerInput::Hir(component));
         }
 
