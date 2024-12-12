@@ -3,12 +3,16 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use midenc_hir::{
-    diagnostics::Severity, pass::AnalysisManager, types::Abi, AbiParam, Block, Call, CallConv,
-    ComponentBuilder, ComponentImport, Function, FunctionIdent, FunctionType, InstBuilder,
-    Instruction, Linkage, MidenAbiImport, Signature, SourceSpan, Symbol, Type, UnsafeRef,
+    diagnostics::Severity, pass::AnalysisManager, types::Abi, Block, Call, ComponentBuilder,
+    ComponentImport, Function, FunctionIdent, FunctionType, InstBuilder, Instruction,
+    MidenAbiImport, Signature, SourceSpan, Symbol, UnsafeRef,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
+use super::flat::{
+    assert_core_wasm_signature_equivalence, flatten_function_type, needs_transformation,
+    FlatteningDirection,
+};
 use crate::{stage::Stage, CompilerResult, LinkerInput};
 
 /// Generates lifting for imports for the cross-context calls according to the Miden ABI.
@@ -79,6 +83,7 @@ impl Stage for LiftImportsCrossCtxStage {
 
             let (new_import, lifting_func_id) = generate_lifting_function(
                 &mut component_builder,
+                &cabi_import.high_func_ty,
                 import_func_id,
                 import_func_sig.clone(),
                 &session.diagnostics,
@@ -109,6 +114,7 @@ impl Stage for LiftImportsCrossCtxStage {
 /// Generates the lifting function (cross-context Miden ABI -> Wasm CABI) for the given import function.
 fn generate_lifting_function(
     component_builder: &mut ComponentBuilder<'_>,
+    high_func_ty: &FunctionType,
     import_func_id: FunctionIdent,
     import_func_sig: Signature,
     diagnostics: &DiagnosticsHandler,
@@ -119,20 +125,22 @@ fn generate_lifting_function(
     // dbg!(&lifting_module_id);
     let mut module_builder = component_builder.module(lifting_module_id);
 
+    let import_lowered_sig = flatten_function_type(high_func_ty, FlatteningDirection::Lower);
+
+    if needs_transformation(&import_lowered_sig) {
+        let message = format!(
+            "Miden CCABI export lowering generation. Signature for exported function {} requires \
+             lowering. This is not supported yet.",
+            import_func_id
+        );
+        return Err(diagnostics.diagnostic(Severity::Error).with_message(message).into_report());
+    }
+    assert_core_wasm_signature_equivalence(&import_func_sig, &import_lowered_sig);
+
     let mut builder = module_builder.function(import_func_id.function, import_func_sig)?;
     let entry = builder.current_block();
     let params = builder.block_params(entry).to_vec();
 
-    // TODO: analyze the signature and speculate what cross-context Miden ABI signature would
-    // export have.
-    // For now just assume passing <16 felts and returning 1 and copy the signature
-    let import_lowered_sig = Signature {
-        params: vec![AbiParam::new(Type::Felt)],
-        results: vec![AbiParam::new(Type::Felt)],
-        // TODO: add CallConv::CrossCtx
-        cc: CallConv::SystemV,
-        linkage: Linkage::External,
-    };
     let dfg = builder.data_flow_graph_mut();
     if dfg.get_import(&import_func_id).is_none() {
         dfg.import_function(
@@ -150,10 +158,8 @@ fn generate_lifting_function(
         })?;
     }
     // TODO: use the span from the caller
-    // TODO: lower the params from the Wasm CABI to the cross-context Miden ABI
     let call = builder.ins().call(import_func_id, &params, SourceSpan::UNKNOWN);
     // dbg!(&sig);
-    // TODO: lift the result from the cross-context Miden ABI to Wasm CABI
     let result = builder.first_result(call);
     builder.ins().ret(Some(result), SourceSpan::UNKNOWN);
     let function_id = builder.build()?;

@@ -52,7 +52,7 @@ pub struct CanonAbiImport {
     /// The interfact function name that is being imported
     pub interface_function: InterfaceFunctionIdent,
     /// The component(lifted) type of the imported function
-    high_func_ty: FunctionType,
+    pub high_func_ty: FunctionType,
     /// Any options associated with this import
     pub options: CanonicalOptions,
 }

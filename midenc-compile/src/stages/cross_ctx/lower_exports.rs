@@ -6,11 +6,15 @@ use midenc_hir::{
     diagnostics::Severity,
     pass::AnalysisManager,
     types::Abi::{self, Canonical},
-    AbiParam, CallConv, ComponentBuilder, ComponentExport, FunctionType, InstBuilder,
-    InterfaceFunctionIdent, Linkage, Signature, SourceSpan, Type,
+    ComponentBuilder, ComponentExport, FunctionType, InstBuilder, InterfaceFunctionIdent,
+    SourceSpan,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
+use super::flat::{
+    assert_core_wasm_signature_equivalence, flatten_function_type, needs_transformation,
+    FlatteningDirection,
+};
 use crate::{stage::Stage, CompilerResult, LinkerInput};
 
 /// Generates lowering for exports for the cross-context calls according to the Miden ABI.
@@ -24,7 +28,8 @@ use crate::{stage::Stage, CompilerResult, LinkerInput};
 /// cross-context calls, i.e. using the stack and the advice provider for arguments and results.
 pub struct LowerExportsCrossCtxStage;
 
-// TODO: swap `lift` and `lower` in the component import/export pretty-printing to sync with
+// TODO: NO! Reverse - rename these stages to be inline with WASM CM!!!
+// swap `lift` and `lower` in the component import/export pretty-printing to sync with
 // this stage's terminology (an export is lowered, an import is lifted)
 
 impl Stage for LowerExportsCrossCtxStage {
@@ -118,19 +123,21 @@ fn generate_lowering_function(
     // get or create the module for the interface
     let module_id = export_id.interface.full_name;
     let mut module_builder = component_builder.module(module_id);
-    // TODO: analyze the signature and speculate what cross-context Miden ABI signature we need to export.
-    // For now just assume passing <16 felts and returning 1 and copy the signature
-    let cross_ctx_export_sig = Signature {
-        params: vec![AbiParam::new(Type::Felt)],
-        results: vec![AbiParam::new(Type::Felt)],
-        // TODO: add CallConv::CrossCtx
-        cc: CallConv::SystemV,
-        linkage: Linkage::External,
-    };
+    let cross_ctx_export_sig =
+        flatten_function_type(&export.function_ty, FlatteningDirection::Lift);
+    if needs_transformation(&cross_ctx_export_sig) {
+        let message = format!(
+            "Miden CCABI export lowering generation. Signature for exported function {} requires \
+             lowering. This is not yet supported",
+            export.function
+        );
+        return Err(diagnostics.diagnostic(Severity::Error).with_message(message).into_report());
+    }
+    assert_core_wasm_signature_equivalence(&export_func_sig, &cross_ctx_export_sig);
+
     let mut builder = module_builder.function(export_id.function, cross_ctx_export_sig.clone())?;
     let entry = builder.current_block();
     let params = builder.block_params(entry).to_vec();
-    // TODO: lift the params from the cross-context Miden ABI to the Wasm CABI
 
     let dfg = builder.data_flow_graph_mut();
     // import the Wasm core function
@@ -153,7 +160,6 @@ fn generate_lowering_function(
     // TODO: use the span from the callee
     let call = builder.ins().exec(export.function, &params, SourceSpan::UNKNOWN);
     // dbg!(&sig);
-    // TODO: lower the result from the Wasm CABI to the cross-context Miden ABI
     let result = builder.first_result(call);
     builder.ins().ret(Some(result), SourceSpan::UNKNOWN);
     let function_id = builder.build()?;
