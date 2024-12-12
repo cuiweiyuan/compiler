@@ -49,10 +49,10 @@ impl formatter::PrettyPrint for CanonicalOptions {
 /// the Wasm Component Model Canonical ABI.
 #[derive(Debug, Clone)]
 pub struct CanonAbiImport {
-    /// The interfact function name that is being imported
+    /// The interface function name that is being imported (Wasm CM level)
     pub interface_function: InterfaceFunctionIdent,
-    /// The component(lifted) type of the imported function
-    pub high_func_ty: FunctionType,
+    /// The interface function type (Wasm CM level)
+    pub interface_function_ty: FunctionType,
     /// Any options associated with this import
     pub options: CanonicalOptions,
 }
@@ -66,7 +66,7 @@ impl CanonAbiImport {
         assert_eq!(high_func_ty.abi, Abi::Wasm, "expected Abi::Wasm function type ABI");
         Self {
             interface_function,
-            high_func_ty,
+            interface_function_ty: high_func_ty,
             options,
         }
     }
@@ -114,7 +114,7 @@ impl formatter::PrettyPrint for ComponentImport {
     fn render(&self) -> formatter::Document {
         use crate::formatter::*;
         let function_ty_str = match self {
-            ComponentImport::CanonAbiImport(import) => import.high_func_ty.to_string(),
+            ComponentImport::CanonAbiImport(import) => import.interface_function_ty.to_string(),
             ComponentImport::MidenAbiImport(import) => import.function_ty.to_string(),
         };
         let name = match self {

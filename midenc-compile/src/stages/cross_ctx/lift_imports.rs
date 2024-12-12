@@ -83,7 +83,7 @@ impl Stage for LiftImportsCrossCtxStage {
 
             let (new_import, lifting_func_id) = generate_lifting_function(
                 &mut component_builder,
-                &cabi_import.high_func_ty,
+                &cabi_import.interface_function_ty,
                 import_func_id,
                 import_func_sig.clone(),
                 &session.diagnostics,
