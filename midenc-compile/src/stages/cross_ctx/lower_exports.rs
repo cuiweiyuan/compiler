@@ -100,14 +100,6 @@ fn generate_lowering_function(
     export: ComponentExport,
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<ComponentExport> {
-    // TODO: remove after handling the lowering for all exports!
-    if export_id.interface.to_string() != "miden:cross-ctx-account/foo@1.0.0"
-        && export_id.function.as_str() != "process-felt"
-    {
-        // So far we only hardcoded the lowering for the process-felt function
-        return Ok(export);
-    }
-
     let export_func_sig = component_builder
         .signature(&export.function)
         .ok_or({

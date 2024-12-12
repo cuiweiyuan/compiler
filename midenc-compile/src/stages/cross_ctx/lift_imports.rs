@@ -40,12 +40,6 @@ impl Stage for LiftImportsCrossCtxStage {
             return Ok(input);
         };
 
-        // TODO: remove after handling the lifting for all imports!
-        if component.name().as_str() != "cross_ctx_note" {
-            // So far only hardcoded lift imports for the cross_ctx_note
-            return Ok(LinkerInput::Hir(component));
-        }
-
         // dbg!(&component.imports());
         // dbg!(&component.modules().keys());
 
