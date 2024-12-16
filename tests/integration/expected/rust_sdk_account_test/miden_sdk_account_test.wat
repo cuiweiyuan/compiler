@@ -26,7 +26,7 @@
   (type (;24;) (func (param i32)))
   (type (;25;) (func (param i32 i32 i32)))
   (type (;26;) (func))
-  (import "miden:core-import/intrinsics-felt@1.0.0" "from-u32-unchecked" (func $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked (;0;) (type 0)))
+  (import "miden:core-import/intrinsics-felt@1.0.0" "from-u32" (func $miden_stdlib_sys::intrinsics::felt::extern_from_u32 (;0;) (type 0)))
   (import "miden:core-import/intrinsics-felt@1.0.0" "add" (func $miden_stdlib_sys::intrinsics::felt::extern_add (;1;) (type 1)))
   (import "miden:core-import/intrinsics-felt@1.0.0" "as_u64" (func $miden_stdlib_sys::intrinsics::felt::extern_as_u64 (;2;) (type 2)))
   (import "miden:core-import/intrinsics-felt@1.0.0" "gt" (func $miden_stdlib_sys::intrinsics::felt::extern_gt (;3;) (type 3)))
@@ -78,7 +78,7 @@
     call $miden_base_sys::bindings::account::get_id
     local.set 0
     i32.const 42
-    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
     local.get 0
     call $miden_stdlib_sys::intrinsics::felt::extern_add
   )
@@ -93,17 +93,17 @@
     local.tee 1
     global.set $__stack_pointer
     i32.const 1
-    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
     local.set 2
     i32.const 2
-    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
     local.set 3
     i32.const 3
-    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
     local.set 4
     local.get 1
     i32.const 4
-    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
     f32.store offset=12
     local.get 1
     local.get 4
@@ -792,7 +792,7 @@
     i32.load offset=24
     local.set 5
     i32.const 0
-    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+    call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
     local.tee 1
     local.get 1
     local.get 1

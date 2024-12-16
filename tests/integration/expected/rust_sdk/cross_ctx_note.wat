@@ -26,7 +26,7 @@
   (type (;4;)
     (instance
       (type (;0;) (func (param "a" u32) (result float32)))
-      (export (;0;) "from-u32-unchecked" (func (type 0)))
+      (export (;0;) "from-u32" (func (type 0)))
       (type (;1;) (func (param "a" float32) (param "b" float32)))
       (export (;1;) "assert-eq" (func (type 1)))
     )
@@ -41,7 +41,7 @@
     (type (;5;) (func (param i32 i32) (result i32)))
     (type (;6;) (func (param i32 i32 i32 i32) (result i32)))
     (type (;7;) (func (param i32 i32 i32) (result i32)))
-    (import "miden:core-import/intrinsics-felt@1.0.0" "from-u32-unchecked" (func $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked (;0;) (type 0)))
+    (import "miden:core-import/intrinsics-felt@1.0.0" "from-u32" (func $miden_stdlib_sys::intrinsics::felt::extern_from_u32 (;0;) (type 0)))
     (import "miden:cross-ctx-account/foo@1.0.0" "process-felt" (func $cross_ctx_note::bindings::miden::cross_ctx_account::foo::process_felt::wit_import (;1;) (type 1)))
     (import "miden:core-import/intrinsics-felt@1.0.0" "assert-eq" (func $miden_stdlib_sys::intrinsics::felt::extern_assert_eq (;2;) (type 2)))
     (import "miden:core-import/intrinsics-mem@1.0.0" "heap-base" (func $miden_sdk_alloc::heap_base (;3;) (type 3)))
@@ -77,10 +77,10 @@
     (func $miden:base/note-script@1.0.0#note-script (;8;) (type 4)
       call $wit_bindgen_rt::run_ctors_once
       i32.const 7
-      call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+      call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
       call $cross_ctx_note::bindings::miden::cross_ctx_account::foo::process_felt::wit_import
       i32.const 10
-      call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+      call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
       call $miden_stdlib_sys::intrinsics::felt::extern_assert_eq
     )
     (func $cabi_realloc_wit_bindgen_0_28_0 (;9;) (type 6) (param i32 i32 i32 i32) (result i32)
@@ -217,12 +217,12 @@
     (elem (;0;) (i32.const 1) func $cross_ctx_note::bindings::__link_custom_section_describing_imports $cabi_realloc)
     (data $.rodata (;0;) (i32.const 1048576) "\01\00\00\00\01\00\00\00\01\00\00\00\01\00\00\00\01\00\00\00\01\00\00\00\01\00\00\00\01\00\00\00\01\00\00\00\02\00\00\00")
   )
-  (alias export 3 "from-u32-unchecked" (func (;0;)))
+  (alias export 3 "from-u32" (func (;0;)))
   (core func (;0;) (canon lower (func 0)))
   (alias export 3 "assert-eq" (func (;1;)))
   (core func (;1;) (canon lower (func 1)))
   (core instance (;0;)
-    (export "from-u32-unchecked" (func 0))
+    (export "from-u32" (func 0))
     (export "assert-eq" (func 1))
   )
   (alias export 1 "process-felt" (func (;2;)))

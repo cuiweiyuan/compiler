@@ -18,7 +18,7 @@
       (type (;0;) (func (param "a" float32) (param "b" float32) (result float32)))
       (export (;0;) "add" (func (type 0)))
       (type (;1;) (func (param "a" u32) (result float32)))
-      (export (;1;) "from-u32-unchecked" (func (type 1)))
+      (export (;1;) "from-u32" (func (type 1)))
     )
   )
   (import "miden:core-import/intrinsics-felt@1.0.0" (instance (;2;) (type 2)))
@@ -31,7 +31,7 @@
     (type (;5;) (func (param i32 i32 i32 i32) (result i32)))
     (type (;6;) (func (param f32) (result f32)))
     (type (;7;) (func (param i32 i32 i32) (result i32)))
-    (import "miden:core-import/intrinsics-felt@1.0.0" "from-u32-unchecked" (func $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked (;0;) (type 0)))
+    (import "miden:core-import/intrinsics-felt@1.0.0" "from-u32" (func $miden_stdlib_sys::intrinsics::felt::extern_from_u32 (;0;) (type 0)))
     (import "miden:core-import/intrinsics-felt@1.0.0" "add" (func $miden_stdlib_sys::intrinsics::felt::extern_add (;1;) (type 1)))
     (import "miden:core-import/intrinsics-mem@1.0.0" "heap-base" (func $miden_sdk_alloc::heap_base (;2;) (type 2)))
     (func $__wasm_call_ctors (;3;) (type 3))
@@ -67,7 +67,7 @@
       call $wit_bindgen_rt::run_ctors_once
       local.get 0
       i32.const 3
-      call $miden_stdlib_sys::intrinsics::felt::extern_from_u32_unchecked
+      call $miden_stdlib_sys::intrinsics::felt::extern_from_u32
       call $miden_stdlib_sys::intrinsics::felt::extern_add
     )
     (func $cabi_realloc_wit_bindgen_0_28_0 (;8;) (type 5) (param i32 i32 i32 i32) (result i32)
@@ -206,11 +206,11 @@
   )
   (alias export 2 "add" (func (;0;)))
   (core func (;0;) (canon lower (func 0)))
-  (alias export 2 "from-u32-unchecked" (func (;1;)))
+  (alias export 2 "from-u32" (func (;1;)))
   (core func (;1;) (canon lower (func 1)))
   (core instance (;0;)
     (export "add" (func 0))
-    (export "from-u32-unchecked" (func 1))
+    (export "from-u32" (func 1))
   )
   (alias export 1 "heap-base" (func (;2;)))
   (core func (;2;) (canon lower (func 2)))

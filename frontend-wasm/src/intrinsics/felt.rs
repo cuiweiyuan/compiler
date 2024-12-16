@@ -20,7 +20,7 @@ pub(crate) fn convert_felt_intrinsics(
             let inst = builder.ins().cast(args[0], Felt, span);
             vec![inst]
         }
-        "from_u32_unchecked" => {
+        "from_u32" => {
             assert_eq!(args.len(), 1, "{} takes exactly one argument", func_id);
             let inst = builder.ins().bitcast(args[0], Felt, span);
             vec![inst]
