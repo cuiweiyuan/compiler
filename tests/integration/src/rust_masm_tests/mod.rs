@@ -12,12 +12,10 @@ use crate::execute_emulator;
 
 mod abi_transform;
 mod apps;
-mod components;
 mod instructions;
 mod intrinsics;
 mod rust_sdk;
 mod types;
-mod wit_sdk;
 
 pub fn run_masm_vs_rust<T>(
     rust_out: T,
