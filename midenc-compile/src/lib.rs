@@ -84,8 +84,8 @@ where
     };
     let mut stages = ParseStage
         .next(SemanticAnalysisStage)
-        .next(LowerExportsCrossCtxStage)
-        .next(LiftImportsCrossCtxStage)
+        .next(LiftExportsCrossCtxStage)
+        .next(LowerImportsCrossCtxStage)
         .next_optional(ApplyRewritesStage)
         .collect(LinkerStage)
         .next(CodegenStage)
@@ -110,8 +110,8 @@ fn compile_inputs(
 ) -> CompilerResult<Artifact> {
     let mut stages = ParseStage
         .next(SemanticAnalysisStage)
-        .next(LowerExportsCrossCtxStage)
-        .next(LiftImportsCrossCtxStage)
+        .next(LiftExportsCrossCtxStage)
+        .next(LowerImportsCrossCtxStage)
         .next_optional(ApplyRewritesStage)
         .collect(LinkerStage)
         .next(CodegenStage)

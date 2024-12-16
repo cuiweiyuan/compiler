@@ -1,4 +1,4 @@
-# mod #anon::lift-imports-miden:cross-ctx-account/foo@1.0.0
+# mod #anon::lower-imports-miden:cross-ctx-account/foo@1.0.0
 
 use.miden:cross-ctx-account/foo@1.0.0
 
@@ -10,7 +10,7 @@ end
 # mod cross_ctx_note
 
 use.intrinsics::mem
-use.lift-imports-miden:cross-ctx-account/foo@1.0.0
+use.lower-imports-miden:cross-ctx-account/foo@1.0.0
 use.miden:cross-ctx-account/foo@1.0.0
 
 proc."cross_ctx_note::bindings::__link_custom_section_describing_imports"
@@ -422,7 +422,7 @@ end
 export."miden:base/note-script@1.0.0#note-script"
     exec."wit_bindgen_rt::run_ctors_once"
     push.7
-    exec.::lift-imports-miden:cross-ctx-account/foo@1.0.0::"process-felt"
+    exec.::lower-imports-miden:cross-ctx-account/foo@1.0.0::"process-felt"
     push.10
     assert_eq
 end

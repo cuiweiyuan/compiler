@@ -1,4 +1,4 @@
-//! Lowering the exports for cross-context calls.
+//! lifting the exports for cross-context calls.
 
 use std::collections::BTreeMap;
 
@@ -17,22 +17,18 @@ use super::flat::{
 };
 use crate::{stage::Stage, CompilerResult, LinkerInput};
 
-/// Generates lowering for exports for the cross-context calls according to the Miden ABI.
+/// Generates lifting for exports for the cross-context calls according to the Miden ABI.
 ///
-/// For each component export ensure a module for each interface that has a lowering
+/// For each component export ensure a module for each interface that has a lifting
 /// function, i.e. a function that takes parameters according to the cross-context Miden
-/// ABI, lifts them to the Wasm CABI, calls the core Wasm module exported function,
-/// lowers the results to the cross-context Miden ABI
+/// ABI, converts them to the Wasm CABI, calls the core Wasm module exported function,
+/// converts the results to the cross-context Miden ABI
 ///
 /// After this stage all exported functons are expected to be called using the Miden ABI for
 /// cross-context calls, i.e. using the stack and the advice provider for arguments and results.
-pub struct LowerExportsCrossCtxStage;
+pub struct LiftExportsCrossCtxStage;
 
-// TODO: NO! Reverse - rename these stages to be inline with WASM CM!!!
-// swap `lift` and `lower` in the component import/export pretty-printing to sync with
-// this stage's terminology (an export is lowered, an import is lifted)
-
-impl Stage for LowerExportsCrossCtxStage {
+impl Stage for LiftExportsCrossCtxStage {
     type Input = LinkerInput;
     type Output = LinkerInput;
 
@@ -53,13 +49,12 @@ impl Stage for LowerExportsCrossCtxStage {
 
         let mut component_builder = ComponentBuilder::load(*component, &session.diagnostics);
 
-        let mut lowered_exports: BTreeMap<InterfaceFunctionIdent, ComponentExport> =
-            BTreeMap::new();
+        let mut lifted_exports: BTreeMap<InterfaceFunctionIdent, ComponentExport> = BTreeMap::new();
         let exports = component_builder.exports().clone();
         for (id, export) in exports.into_iter() {
             if let Canonical = export.function_ty.abi() {
-                // skip exports that are already lowered
-                lowered_exports.insert(id, export);
+                // skip exports that are already lifted
+                lifted_exports.insert(id, export);
                 continue;
             }
             if let Some(entrypoint) = &session.options.entrypoint {
@@ -70,20 +65,20 @@ impl Stage for LowerExportsCrossCtxStage {
                     export.function.function.as_str()
                 );
                 if entrypoint == &export_core_func {
-                    lowered_exports.insert(id, export);
+                    lifted_exports.insert(id, export);
                     continue;
                 }
             }
-            let new_export = generate_lowering_function(
+            let new_export = generate_lifting_function(
                 &mut component_builder,
                 id,
                 export,
                 &session.diagnostics,
             )?;
-            lowered_exports.insert(id, new_export);
+            lifted_exports.insert(id, new_export);
         }
 
-        let component_builder = component_builder.with_exports(lowered_exports);
+        let component_builder = component_builder.with_exports(lifted_exports);
 
         let component = component_builder.build();
 
@@ -94,7 +89,7 @@ impl Stage for LowerExportsCrossCtxStage {
     }
 }
 
-fn generate_lowering_function(
+fn generate_lifting_function(
     component_builder: &mut ComponentBuilder,
     export_id: InterfaceFunctionIdent,
     export: ComponentExport,
@@ -104,7 +99,7 @@ fn generate_lowering_function(
         .signature(&export.function)
         .ok_or({
             let message = format!(
-                "Miden CCABI export lowering generation. Cannot find signature for exported \
+                "Miden CCABI export lifting generation. Cannot find signature for exported \
                  function {}",
                 export.function
             );
@@ -118,7 +113,7 @@ fn generate_lowering_function(
     let cross_ctx_export_sig =
         flatten_function_type(&export.function_ty, FlatteningDirection::Lift).map_err(|e| {
             let message = format!(
-                "Miden CCABI export lowering generation. Signature for exported function {} \
+                "Miden CCABI export lifting generation. Signature for exported function {} \
                  requires flattening. Error: {}",
                 export.function, e
             );
@@ -126,8 +121,8 @@ fn generate_lowering_function(
         })?;
     if needs_transformation(&cross_ctx_export_sig) {
         let message = format!(
-            "Miden CCABI export lowering generation. Signature for exported function {} requires \
-             lowering. This is not yet supported",
+            "Miden CCABI export lifting generation. Signature for exported function {} requires \
+             lifting. This is not yet supported",
             export.function
         );
         return Err(diagnostics.diagnostic(Severity::Error).with_message(message).into_report());
@@ -148,7 +143,7 @@ fn generate_lowering_function(
         )
         .map_err(|_e| {
             let message = format!(
-                "Miden CCABI export lowering generation. Lowering function with name {} in module \
+                "Miden CCABI export lifting generation. lifting function with name {} in module \
                  {} with signature {export_func_sig:?} is already imported (function call) with a \
                  different signature",
                 export.function.function, export.function.module

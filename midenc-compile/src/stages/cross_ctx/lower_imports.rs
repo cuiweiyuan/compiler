@@ -1,4 +1,4 @@
-//! Lifting the imports into the Miden ABI for the cross-context calls
+//! lowering the imports into the Miden ABI for the cross-context calls
 
 use std::collections::{BTreeMap, VecDeque};
 
@@ -16,16 +16,16 @@ use super::flat::{
 };
 use crate::{stage::Stage, CompilerResult, LinkerInput};
 
-/// Generates lifting for imports for the cross-context calls according to the Miden ABI.
+/// Generates lowering for imports for the cross-context calls according to the Miden ABI.
 ///
-/// For each component import ensure a module for each interface that has a lifting function i.e. a
-/// function that takes the arguments according to the Wasm CABI, lowers them to the cross-context
+/// For each component import ensure a module for each interface that has a lowering function i.e. a
+/// function that takes the arguments according to the Wasm CABI, converts them to the cross-context
 /// Miden ABI, calls the imported function with the lowered arguments, takes the result
-/// (cross-context Miden ABI), and lifts it to the Wasm CABI.
-/// The calls to the component import is switched to the generated lifting function.
-pub struct LiftImportsCrossCtxStage;
+/// (cross-context Miden ABI), and converts it to the Wasm CABI.
+/// The calls to the component import is switched to the generated lowering function.
+pub struct LowerImportsCrossCtxStage;
 
-impl Stage for LiftImportsCrossCtxStage {
+impl Stage for LowerImportsCrossCtxStage {
     type Input = LinkerInput;
     type Output = LinkerInput;
 
@@ -46,12 +46,12 @@ impl Stage for LiftImportsCrossCtxStage {
 
         let mut component_builder = ComponentBuilder::load(*component, &session.diagnostics);
 
-        let mut lifted_imports: BTreeMap<FunctionIdent, ComponentImport> = BTreeMap::new();
+        let mut lowered_imports: BTreeMap<FunctionIdent, ComponentImport> = BTreeMap::new();
         let imports = component_builder.imports().clone();
         for (core_import_func_id, import) in imports.into_iter() {
             if let ComponentImport::MidenAbiImport(_) = import {
-                // skip imports that are already lifted
-                lifted_imports.insert(core_import_func_id, import);
+                // skip imports that are already lowered
+                lowered_imports.insert(core_import_func_id, import);
                 continue;
             }
             let cabi_import = import.unwrap_canon_abi_import();
@@ -64,7 +64,7 @@ impl Stage for LiftImportsCrossCtxStage {
                 .import_signature(&import_func_id)
                 .ok_or({
                     let message = format!(
-                        "Miden CCABI import lifting generation. Cannot find signature for Wasm \
+                        "Miden CCABI import lowering generation. Cannot find signature for Wasm \
                          CABI imported function {}",
                         import_func_id
                     );
@@ -76,7 +76,7 @@ impl Stage for LiftImportsCrossCtxStage {
                 })?
                 .clone();
 
-            let (new_import, lifting_func_id) = generate_lifting_function(
+            let (new_import, lowering_func_id) = generate_lowering_function(
                 &mut component_builder,
                 &cabi_import.interface_function_ty,
                 import_func_id,
@@ -84,11 +84,11 @@ impl Stage for LiftImportsCrossCtxStage {
                 core_import_func_id.function.span(),
                 &session.diagnostics,
             )?;
-            lifted_imports.insert(lifting_func_id, new_import.into());
+            lowered_imports.insert(lowering_func_id, new_import.into());
 
-            call_lifting_function(
+            call_lowering_function(
                 &mut component_builder,
-                lifting_func_id,
+                lowering_func_id,
                 import_func_id,
                 import_func_sig,
                 analyses,
@@ -96,7 +96,7 @@ impl Stage for LiftImportsCrossCtxStage {
             )?;
         }
 
-        let component_builder = component_builder.with_imports(lifted_imports);
+        let component_builder = component_builder.with_imports(lowered_imports);
 
         let component = component_builder.build();
 
@@ -107,8 +107,8 @@ impl Stage for LiftImportsCrossCtxStage {
     }
 }
 
-/// Generates the lifting function (cross-context Miden ABI -> Wasm CABI) for the given import function.
-fn generate_lifting_function(
+/// Generates the lowering function (cross-context Miden ABI -> Wasm CABI) for the given import function.
+fn generate_lowering_function(
     component_builder: &mut ComponentBuilder<'_>,
     high_func_ty: &FunctionType,
     import_func_id: FunctionIdent,
@@ -117,15 +117,15 @@ fn generate_lifting_function(
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<(MidenAbiImport, FunctionIdent)> {
     // get or create the module for the interface
-    let lifting_module_id =
-        Symbol::intern(format!("lift-imports-{}", import_func_id.module.as_str()));
-    // dbg!(&lifting_module_id);
-    let mut module_builder = component_builder.module(lifting_module_id);
+    let lowering_module_id =
+        Symbol::intern(format!("lower-imports-{}", import_func_id.module.as_str()));
+    // dbg!(&lowering_module_id);
+    let mut module_builder = component_builder.module(lowering_module_id);
 
     let import_lowered_sig = flatten_function_type(high_func_ty, FlatteningDirection::Lower)
         .map_err(|e| {
             let message = format!(
-                "Miden CCABI import lifting generation. Signature for imported function {} \
+                "Miden CCABI import lowering generation. Signature for imported function {} \
                  requires flattening. Error: {}",
                 import_func_id.function, e
             );
@@ -155,8 +155,9 @@ fn generate_lifting_function(
         )
         .map_err(|_e| {
             let message = format!(
-                "Lifting function with name {} in module {} with signature {import_lowered_sig:?} \
-                 is already imported (function call) with a different signature",
+                "lowering function with name {} in module {} with signature \
+                 {import_lowered_sig:?} is already imported (function call) with a different \
+                 signature",
                 import_func_id.function, import_func_id.module
             );
             diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
@@ -217,10 +218,10 @@ fn rewrite_calls(function: &mut Function, from: FunctionIdent, to: FunctionIdent
     dirty
 }
 
-/// Replaces calls to the imported functions with calls to the lifting functions.
-fn call_lifting_function(
+/// Replaces calls to the imported functions with calls to the lowering functions.
+fn call_lowering_function(
     component_builder: &mut ComponentBuilder<'_>,
-    lifting_func_id: FunctionIdent,
+    lowering_func_id: FunctionIdent,
     import_func_id: FunctionIdent,
     import_func_sig: Signature,
     analyses: &mut AnalysisManager,
@@ -228,8 +229,8 @@ fn call_lifting_function(
 ) -> Result<(), miden_assembly::Report> {
     let mut modules = Vec::new();
     for (id, mut module) in component_builder.take_modules() {
-        if module.name == lifting_func_id.module {
-            // Skip the module with the lifting function
+        if module.name == lowering_func_id.module {
+            // Skip the module with the lowering function
             modules.push((id, module));
             continue;
         }
@@ -239,20 +240,20 @@ fn call_lifting_function(
         // `remove` will return `None`.
         let mut cursor = module.cursor_mut();
         while let Some(mut function) = cursor.remove() {
-            if rewrite_calls(&mut function, import_func_id, lifting_func_id) {
+            if rewrite_calls(&mut function, import_func_id, lowering_func_id) {
                 // Invalidate the analyses for the function since we've modified it
                 analyses.invalidate::<Function>(&function.id);
-                // Import the lifting function if it's not already imported
+                // Import the lowering function if it's not already imported
                 let dfg = &mut function.dfg;
-                if dfg.get_import(&lifting_func_id).is_none() {
+                if dfg.get_import(&lowering_func_id).is_none() {
                     dfg.import_function(
-                        lifting_func_id.module,
-                        lifting_func_id.function,
+                        lowering_func_id.module,
+                        lowering_func_id.function,
                         import_func_sig.clone(),
                     )
                     .map_err(|_e| {
                         let message = format!(
-                            "Lifting function with name {} in module {} with signature \
+                            "lowering function with name {} in module {} with signature \
                              {import_func_sig:?} is already imported (function call) with a \
                              different signature",
                             import_func_id.function, import_func_id.module
