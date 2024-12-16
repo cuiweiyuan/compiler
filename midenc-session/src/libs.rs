@@ -1,4 +1,4 @@
-use alloc::{borrow::Cow, boxed::Box, format, str::FromStr, string::ToString};
+use alloc::{borrow::Cow, boxed::Box, format, str::FromStr, string::ToString, sync::Arc};
 use core::fmt;
 use std::{
     ffi::OsStr,
@@ -15,16 +15,13 @@ use crate::{
     Session,
 };
 
-static STDLIB: LazyLock<StdLibrary> = LazyLock::new(StdLibrary::default);
-static BASE: LazyLock<MidenTxKernelLibrary> = LazyLock::new(MidenTxKernelLibrary::default);
+pub static STDLIB: LazyLock<Arc<CompiledLibrary>> =
+    LazyLock::new(|| Arc::new(StdLibrary::default().into()));
+pub static BASE: LazyLock<Arc<CompiledLibrary>> =
+    LazyLock::new(|| Arc::new(MidenTxKernelLibrary::default().into()));
 
 /// The types of libraries that can be linked against during compilation
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde_repr::Serialize_repr, serde_repr::Deserialize_repr)
-)]
-#[repr(u8)]
 pub enum LibraryKind {
     /// A compiled MAST library
     #[default]
@@ -58,7 +55,6 @@ impl FromStr for LibraryKind {
 
 /// A library requested by the user to be linked against during compilation
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LinkLibrary {
     /// The name of the library.
     ///
@@ -68,7 +64,6 @@ pub struct LinkLibrary {
     /// will be the basename of the file specified in the path.
     pub name: Cow<'static, str>,
     /// If specified, the path from which this library should be loaded
-    #[cfg_attr(feature = "serde", serde(default))]
     pub path: Option<PathBuf>,
     /// The kind of library to load.
     ///
@@ -112,7 +107,18 @@ impl LinkLibrary {
                 ))
             }),
             LibraryKind::Masp => {
-                todo!("Should be implemented as part of the https://github.com/0xPolygonMiden/compiler/issues/346")
+                let bytes = std::fs::read(path).into_diagnostic()?;
+                let package = miden_package::Package::read_from_bytes(bytes)?;
+                let lib = match package.mast {
+                    miden_package::MastArtifact::Executable(_) => {
+                        return Err(Report::msg(format!(
+                            "Expected Miden package to contain a Library, got Program: '{}'",
+                            path.display()
+                        )))
+                    }
+                    miden_package::MastArtifact::Library(lib) => lib.clone(),
+                };
+                Ok((*lib).clone())
             }
         }
     }

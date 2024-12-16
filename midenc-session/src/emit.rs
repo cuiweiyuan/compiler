@@ -2,6 +2,7 @@ use alloc::{boxed::Box, fmt, format, string::ToString, sync::Arc, vec};
 use std::{fs::File, io::Write, path::Path};
 
 use miden_core::{prettier::PrettyPrint, utils::Serializable};
+use miden_package::MastArtifact;
 use midenc_hir_symbol::Symbol;
 
 use crate::{OutputMode, OutputType, Session};
@@ -370,6 +371,73 @@ impl Emit for miden_core::Program {
                 self.write_into(&mut writer);
                 Ok(())
             }
+        }
+    }
+}
+
+impl Emit for miden_package::Package {
+    fn name(&self) -> Option<Symbol> {
+        Some(Symbol::intern(&self.name))
+    }
+
+    fn output_type(&self, mode: OutputMode) -> OutputType {
+        match mode {
+            OutputMode::Text => OutputType::Mast,
+            OutputMode::Binary => OutputType::Masp,
+        }
+    }
+
+    fn write_to<W: std::io::Write>(
+        &self,
+        mut writer: W,
+        mode: OutputMode,
+        session: &Session,
+    ) -> std::io::Result<()> {
+        match mode {
+            OutputMode::Text => match self.mast {
+                miden_package::MastArtifact::Executable(ref prog) => {
+                    prog.write_to(writer, mode, session)
+                }
+                miden_package::MastArtifact::Library(ref lib) => {
+                    lib.write_to(writer, mode, session)
+                }
+            },
+            OutputMode::Binary => {
+                let bytes = self.write_to_bytes().map_err(std::io::Error::other)?;
+                writer.write_all(bytes.as_slice())
+            }
+        }
+    }
+}
+
+impl Emit for MastArtifact {
+    fn name(&self) -> Option<Symbol> {
+        None
+    }
+
+    fn output_type(&self, mode: OutputMode) -> OutputType {
+        match mode {
+            OutputMode::Text => OutputType::Mast,
+            OutputMode::Binary => OutputType::Masl,
+        }
+    }
+
+    fn write_to<W: std::io::Write>(
+        &self,
+        writer: W,
+        mode: OutputMode,
+        session: &Session,
+    ) -> std::io::Result<()> {
+        match self {
+            Self::Executable(ref prog) => {
+                if matches!(mode, OutputMode::Binary) {
+                    log::warn!(
+                        "unable to write 'masl' output type for miden_core::Program: skipping.."
+                    );
+                }
+                prog.write_to(writer, mode, session)
+            }
+            Self::Library(ref lib) => lib.write_to(writer, mode, session),
         }
     }
 }

@@ -3,6 +3,7 @@ pub mod intrinsics;
 mod module;
 mod program;
 mod region;
+mod rodata;
 
 pub use midenc_hir::{
     Local, LocalId, MasmBlock as Block, MasmBlockId as BlockId, MasmImport as Import, MasmOp as Op,
@@ -15,6 +16,7 @@ pub use self::{
     module::{FrozenModuleTree, Module, ModuleTree},
     program::{Library, Program},
     region::Region,
+    rodata::Rodata,
 };
 
 /// This represents a descriptor for a pointer translated from the IR into a form suitable for

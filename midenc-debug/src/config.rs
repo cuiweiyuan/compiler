@@ -185,6 +185,7 @@ where
             opts.max_cycles,
             opts.expected_cycles,
             /* enable_tracing= */ true,
+            /* enable_debugging= */ true,
         )
         .map(|exec_opts| exec_opts.with_debugging())
         .map_err(|err| serde::de::Error::custom(format!("invalid execution options: {err}")))
@@ -206,7 +207,8 @@ mod tests {
         .unwrap();
 
         let file = toml::from_str::<DebuggerConfig>(&text).unwrap();
-        assert!(file.inputs.values().is_empty());
+        let expected_inputs = StackInputs::new(vec![]).unwrap();
+        assert_eq!(file.inputs.as_ref(), expected_inputs.as_ref());
         assert!(file.advice_inputs.stack().is_empty());
         assert!(file.options.enable_tracing());
         assert!(file.options.enable_debugging());
@@ -224,7 +226,8 @@ mod tests {
         .unwrap();
 
         let file = DebuggerConfig::parse_str(&text).unwrap();
-        assert!(file.inputs.values().is_empty());
+        let expected_inputs = StackInputs::new(vec![]).unwrap();
+        assert_eq!(file.inputs.as_ref(), expected_inputs.as_ref());
         assert!(file.advice_inputs.stack().is_empty());
         assert!(file.options.enable_tracing());
         assert!(file.options.enable_debugging());
@@ -244,7 +247,9 @@ mod tests {
         .unwrap();
 
         let file = DebuggerConfig::parse_str(&text).unwrap();
-        assert_eq!(file.inputs.values(), &[RawFelt::new(3), RawFelt::new(2), RawFelt::new(1)]);
+        let expected_inputs =
+            StackInputs::new(vec![RawFelt::new(1), RawFelt::new(2), RawFelt::new(3)]).unwrap();
+        assert_eq!(file.inputs.as_ref(), expected_inputs.as_ref());
         assert!(file.advice_inputs.stack().is_empty());
         assert!(file.options.enable_tracing());
         assert!(file.options.enable_debugging());
@@ -274,7 +279,9 @@ mod tests {
         )
         .unwrap();
         let file = DebuggerConfig::parse_str(&text).unwrap_or_else(|err| panic!("{err}"));
-        assert_eq!(file.inputs.values(), &[RawFelt::new(3), RawFelt::new(2), RawFelt::new(1)]);
+        let expected_inputs =
+            StackInputs::new(vec![RawFelt::new(1), RawFelt::new(2), RawFelt::new(3)]).unwrap();
+        assert_eq!(file.inputs.as_ref(), expected_inputs.as_ref());
         assert_eq!(
             file.advice_inputs.stack(),
             &[RawFelt::new(4), RawFelt::new(3), RawFelt::new(2), RawFelt::new(1)]

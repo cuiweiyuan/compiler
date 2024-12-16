@@ -2,19 +2,24 @@ use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, VecDeque},
     rc::Rc,
+    sync::Arc,
 };
 
 use miden_assembly::Library as CompiledLibrary;
 use miden_core::{Program, StackInputs, Word};
+use miden_package::{
+    Dependency, DependencyName, DependencyResolution, DependencyResolver, LocalResolution,
+    MemDependencyResolverByDigest, SystemLibraryId,
+};
 use miden_processor::{
     AdviceInputs, ContextId, ExecutionError, Felt, MastForest, MemAdviceProvider, Process,
     ProcessState, RowIndex, StackOutputs, VmState, VmStateIterator,
 };
-use midenc_codegen_masm::{NativePtr, Package};
+use midenc_codegen_masm::{NativePtr, Rodata};
 use midenc_hir::Type;
 use midenc_session::{
     diagnostics::{IntoDiagnostic, Report},
-    Session,
+    LinkLibrary, Session, BASE, STDLIB,
 };
 
 use super::{DebugExecutor, DebuggerHost, ExecutionTrace, TraceEvent};
@@ -29,7 +34,7 @@ use crate::{debug::CallStack, felt::PopFromStack, TestFelt};
 pub struct Executor {
     stack: StackInputs,
     advice: AdviceInputs,
-    libraries: Vec<MastForest>,
+    libraries: Vec<Arc<MastForest>>,
 }
 impl Executor {
     /// Construct an executor with the given arguments on the operand stack
@@ -42,7 +47,7 @@ impl Executor {
     }
 
     pub fn for_package(
-        package: &Package,
+        package: &miden_package::Package,
         args: Vec<Felt>,
         session: &Session,
     ) -> Result<Self, Report> {
@@ -50,32 +55,32 @@ impl Executor {
         log::debug!(
             "creating executor for package '{}' (digest={})",
             package.name,
-            DisplayHex::new(&package.digest.as_bytes())
+            DisplayHex::new(&package.digest().as_bytes())
         );
 
         let mut exec = Self::new(args);
 
-        for link_library in package.manifest.link_libraries.iter() {
-            log::debug!(
-                "loading link library from package manifest: {} (kind = {}, from = {:#?})",
-                link_library.name.as_ref(),
-                link_library.kind,
-                link_library.path.as_ref().map(|p| p.display())
-            );
-            let library = link_library.load(session)?;
-            log::debug!("library loaded succesfully");
-            exec.with_library(&library);
-        }
+        let mut resolver = MemDependencyResolverByDigest::default();
+        resolver.add(*STDLIB.digest(), STDLIB.clone().into());
+        resolver.add(*BASE.digest(), BASE.clone().into());
 
-        for rodata in package.rodata.iter() {
-            log::debug!(
-                "adding rodata segment for offset {} (size {}) to advice map: {}",
-                rodata.start.as_ptr(),
-                rodata.size_in_bytes(),
-                DisplayHex::new(&rodata.digest.as_bytes())
-            );
-            exec.advice
-                .extend_map([(rodata.digest, rodata.to_elements().map_err(Report::msg)?)]);
+        for dep in &package.manifest.dependencies {
+            match resolver.resolve(dep) {
+                Some(resolution) => {
+                    log::debug!("dependency {:?} resolved to {:?}", dep, resolution);
+                    match resolution {
+                        DependencyResolution::Local(LocalResolution::Library(lib)) => {
+                            let library = lib.as_ref();
+                            log::debug!("loading library from package dependency: {:?}", dep);
+                            exec.with_mast_forest(lib.mast_forest().clone());
+                        }
+                        DependencyResolution::Local(LocalResolution::Package(_)) => {
+                            todo!("local package dependencies are not yet supported in executor")
+                        }
+                    }
+                }
+                None => panic!("{:?} not found in resolver", dep),
+            }
         }
 
         log::debug!("executor created");
@@ -92,6 +97,12 @@ impl Executor {
     /// Add a [CompiledLibrary] to the execution context
     pub fn with_library(&mut self, lib: &CompiledLibrary) -> &mut Self {
         self.libraries.push(lib.mast_forest().clone());
+        self
+    }
+
+    /// Add a [MastForest] to the execution context
+    pub fn with_mast_forest(&mut self, mast: Arc<MastForest>) -> &mut Self {
+        self.libraries.push(mast);
         self
     }
 
@@ -120,9 +131,10 @@ impl Executor {
             assertion_events.borrow_mut().insert(clk, event);
         });
 
-        let mut process = Process::new_debug(program.kernel().clone(), self.stack, host);
-        let root_context = process.ctx();
-        let result = process.execute(program);
+        let mut process = Process::new_debug(program.kernel().clone(), self.stack);
+        let process_state: ProcessState = (&process).into();
+        let root_context = process_state.ctx();
+        let result = process.execute(program, &mut host);
         let mut iter = VmStateIterator::new(process, result.clone());
         let mut callstack = CallStack::new(trace_events);
         DebugExecutor {

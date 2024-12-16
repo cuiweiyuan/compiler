@@ -83,11 +83,26 @@ thiserror = { package = "miden-thiserror", version = "1.0" }
 toml = { version = "0.8", features = ["preserve_order"] }
 derive_more = "0.99"
 indexmap = "2.2"
-miden-assembly = { version = "0.10.3" }
-miden-core = { version = "0.10.3" }
+# miden-assembly = { version = "0.10.3" }
+# miden-core = { version = "0.10.3" }
 miden-parsing = "0.1"
-miden-processor = { version = "0.10.3" }
-miden-stdlib = { version = "0.10.3", features = ["with-debug-info"] }
+# miden-processor = { version = "0.10.3" }
+# miden-stdlib = { version = "0.10.3", features = ["with-debug-info"] }
+
+# miden-assembly = { version = "0.11.0", path = "../vm-aux/assembly" }
+# miden-core = { version = "0.11.0", path = "../vm-aux/core" }
+# miden-processor = { version = "0.11.0", path = "../vm-aux/processor" }
+# miden-stdlib = { version = "0.11.0", path = "../vm-aux/stdlib" }
+# miden-package = { version = "0.11.0", path = "../vm-aux/package" }
+
+miden-assembly = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
+miden-core = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
+miden-processor = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
+miden-stdlib = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293", features = [
+    "with-debug-info",
+] }
+miden-package = { version = "0.11.0", git = "https://github.com/0xPolygonMiden/miden-vm", rev = "fe4afa2ad655772cd1ef1c30d014c383731ab293" }
+
 #miden-assembly = { git = "https://github.com/0xPolygonMiden/miden-vm", rev = "828557c28ca1d159bfe42195e7ea73256ce4aa06" }
 #miden-core = { git = "https://github.com/0xPolygonMiden/miden-vm", rev = "828557c28ca1d159bfe42195e7ea73256ce4aa06" }
 #miden-processor = { git = "https://github.com/0xPolygonMiden/miden-vm", rev = "828557c28ca1d159bfe42195e7ea73256ce4aa06" }

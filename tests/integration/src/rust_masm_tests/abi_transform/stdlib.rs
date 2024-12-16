@@ -16,6 +16,7 @@ use proptest::{
 
 use crate::CompilerTest;
 
+#[ignore = "until https://github.com/0xPolygonMiden/compiler/issues/352 is fixed"]
 #[test]
 fn test_blake3_hash() {
     let main_fn =
