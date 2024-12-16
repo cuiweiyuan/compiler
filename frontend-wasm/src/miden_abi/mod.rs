@@ -92,7 +92,11 @@ pub fn recover_imported_masm_function_id(
              {wasm_function_id}"
         )
     } else {
-        wasm_module_id
+        // Unrecognized module ID, return as is
+        return FunctionIdent {
+            module: Ident::from(wasm_module_id),
+            function: Ident::from(wasm_function_id),
+        };
     };
     // Since `hash-1to1` is an invalid name in Wasm CM (dashed part cannot start with a digit),
     // we need to translate the CM name to the one that is expected at the linking stage

@@ -7,13 +7,20 @@ interface basic-wallet {
 
     receive-asset: func(core-asset: core-asset);
     send-asset: func(core-asset: core-asset, tag: tag, note-type: note-type, recipient: recipient);
+}
 
+interface aux {
+    use core-types.{core-asset, tag, recipient, note-type, felt};
     test-felt-intrinsics: func(a: felt, b: felt) -> felt;
     test-stdlib: func(input: list<u8>) -> list<u8>;
+    process-list-felt: func(input: list<felt>) -> list<felt>;
+    process-core-asset: func(input: core-asset) -> core-asset;
 }
+
 
 world basic-wallet-world {
     include miden:core-import/all@1.0.0;
 
     export basic-wallet;
+    export aux;
 }

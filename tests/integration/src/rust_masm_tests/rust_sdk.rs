@@ -41,6 +41,19 @@ fn rust_sdk_basic_wallet() {
     test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
     test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
     test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
+    let package = test.compiled_package();
+    let lib = package.unwrap_library();
+    let expected_module = "#anon::miden:basic-wallet/basic-wallet@1.0.0";
+    let expected_function = "receive-asset";
+    let exports = lib
+        .exports()
+        .filter(|e| !e.module.to_string().starts_with("intrinsics"))
+        .map(|e| format!("{}::{}", e.module, e.name.as_str()))
+        .collect::<Vec<_>>();
+    dbg!(&exports);
+    assert!(lib.exports().any(|export| {
+        export.module.to_string() == expected_module && export.name.as_str() == expected_function
+    }));
 }
 
 #[test]
@@ -53,6 +66,10 @@ fn rust_sdk_p2id_note_script() {
         "--manifest-path",
         "../rust-apps-wasm/rust-sdk/basic-wallet/Cargo.toml",
         "--release",
+        // Use the target dir of this test's cargo project to avoid issues running tests in parallel
+        // i.e. avoid using the same target dir as the basic-wallet test (see above)
+        "--target-dir",
+        "../rust-apps-wasm/rust-sdk/p2id-note/target",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -80,6 +97,10 @@ fn rust_sdk_p2id_note_script() {
         "../rust-apps-wasm/rust-sdk/p2id-note",
         config,
         [
+            "-l".into(),
+            "std".into(),
+            "-l".into(),
+            "base".into(),
             "--link-library".into(),
             masp_path.into_os_string().into_string().unwrap().into(),
         ],
@@ -87,5 +108,5 @@ fn rust_sdk_p2id_note_script() {
     let artifact_name = test.artifact_name().to_string();
     test.expect_wasm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.wat")]);
     test.expect_ir(expect_file![format!("../../expected/rust_sdk/{artifact_name}.hir")]);
-    // test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
+    test.expect_masm(expect_file![format!("../../expected/rust_sdk/{artifact_name}.masm")]);
 }

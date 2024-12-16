@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, fmt, path::Path, sync::Arc};
 use intrusive_collections::{intrusive_adapter, RBTree, RBTreeAtomicLink};
 use miden_assembly::{
     ast::{self, ModuleKind},
-    LibraryPath,
+    LibraryNamespace, LibraryPath,
 };
 use midenc_hir::{
     diagnostics::{Report, SourceFile, SourceSpan, Span, Spanned},
@@ -166,9 +166,15 @@ impl Module {
         // Create module import table
         for ir_import in self.imports.iter() {
             let span = ir_import.span;
-            let name =
-                ast::Ident::new_with_span(span, ir_import.alias.as_str()).map_err(Report::msg)?;
-            let path = LibraryPath::new(ir_import.name.as_str()).expect("invalid import path");
+            let name = ast::Ident::new_unchecked(Span::new(span, ir_import.alias.as_str().into()));
+            let module_name = ir_import.name.as_str();
+            let path = LibraryPath::new(module_name).unwrap_or_else(|_| {
+                let module_id = ast::Ident::new_unchecked(Span::new(
+                    span,
+                    Arc::from(module_name.to_string().into_boxed_str()),
+                ));
+                LibraryPath::new_from_components(LibraryNamespace::Anon, [module_id])
+            });
             let import = ast::Import {
                 span,
                 name,

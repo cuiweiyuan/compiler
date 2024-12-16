@@ -3,7 +3,7 @@
 use.intrinsics::mem
 use.miden::note
 
-export."miden_base_sys::bindings::note::get_inputs"
+proc."miden_base_sys::bindings::note::get_inputs"
     mem_load.0x00011000
     push.16
     u32wrapping_sub
@@ -172,12 +172,12 @@ export."miden_base_sys::bindings::note::get_inputs"
 end
 
 
-export."alloc::raw_vec::handle_error"
+proc."alloc::raw_vec::handle_error"
     push.0 assert
 end
 
 
-export."alloc::raw_vec::RawVec<T,A>::try_allocate_in"
+proc."alloc::raw_vec::RawVec<T,A>::try_allocate_in"
     dup.1
     neq.0
     if.true
@@ -494,7 +494,7 @@ export."alloc::raw_vec::RawVec<T,A>::try_allocate_in"
 end
 
 
-export."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
+proc."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
     push.32
     dup.2
     push.32
@@ -705,7 +705,7 @@ export."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
 end
 
 
-export."__rust_alloc"
+proc."__rust_alloc"
     push.1048576
     movup.2
     swap.1
@@ -713,7 +713,7 @@ export."__rust_alloc"
 end
 
 
-export."__rust_alloc_zeroed"
+proc."__rust_alloc_zeroed"
     push.1048576
     dup.1
     swap.2

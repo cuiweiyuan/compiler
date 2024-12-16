@@ -12,6 +12,8 @@ interface intrinsics-felt {
 
     add: func(a: f32, b: f32) -> f32;
     eq: func(a: f32, b: f32) -> bool;
+    from-u64-unchecked: func(a: u64) -> f32;
+    assert-eq: func(a: f32, b: f32);
 }
 
 interface stdlib-crypto-hashes-blake3 {

@@ -5,12 +5,12 @@ use.miden::account
 use.miden::tx
 use.std::crypto::hashes::blake3
 
-export."basic_wallet::bindings::__link_custom_section_describing_imports"
+proc."basic_wallet::bindings::__link_custom_section_describing_imports"
 
 end
 
 
-export."miden_base_sys::bindings::tx::create_note"
+proc."miden_base_sys::bindings::tx::create_note"
     dup.3
     add.12
     u32assert
@@ -147,7 +147,7 @@ export."miden_base_sys::bindings::tx::create_note"
 end
 
 
-export."miden_base_sys::bindings::account::remove_asset"
+proc."miden_base_sys::bindings::account::remove_asset"
     dup.1
     add.12
     u32assert
@@ -260,7 +260,7 @@ export."miden_base_sys::bindings::account::remove_asset"
 end
 
 
-export."miden_base_sys::bindings::account::add_asset"
+proc."miden_base_sys::bindings::account::add_asset"
     dup.1
     add.12
     u32assert
@@ -373,7 +373,7 @@ export."miden_base_sys::bindings::account::add_asset"
 end
 
 
-export."wit_bindgen_rt::cabi_realloc"
+proc."wit_bindgen_rt::cabi_realloc"
     dup.1
     neq.0
     if.true
@@ -408,9 +408,9 @@ export."wit_bindgen_rt::cabi_realloc"
 end
 
 
-export."wit_bindgen_rt::run_ctors_once"
+proc."wit_bindgen_rt::run_ctors_once"
     push.0
-    add.1048625
+    add.1048637
     u32assert
     dup.0
     u32mod.16
@@ -432,7 +432,7 @@ export."wit_bindgen_rt::run_ctors_once"
         push.128
         u32and
         push.0
-        add.1048625
+        add.1048637
         u32assert
         dup.0
         u32mod.16
@@ -456,7 +456,7 @@ export."wit_bindgen_rt::run_ctors_once"
 end
 
 
-export."alloc::vec::Vec<T,A>::into_boxed_slice"
+proc."alloc::vec::Vec<T,A>::into_boxed_slice"
     dup.1
     add.8
     u32assert
@@ -685,7 +685,7 @@ export."alloc::vec::Vec<T,A>::into_boxed_slice"
 end
 
 
-export."alloc::alloc::Global::alloc_impl"
+proc."alloc::alloc::Global::alloc_impl"
     dup.2
     eq.0
     neq.0
@@ -808,12 +808,12 @@ export."alloc::alloc::Global::alloc_impl"
 end
 
 
-export."alloc::raw_vec::handle_error"
+proc."alloc::raw_vec::handle_error"
     push.0 assert
 end
 
 
-export."alloc::raw_vec::RawVec<T,A>::try_allocate_in"
+proc."alloc::raw_vec::RawVec<T,A>::try_allocate_in"
     mem_load.0x00011000
     push.16
     u32wrapping_sub
@@ -1256,7 +1256,7 @@ export."alloc::raw_vec::RawVec<T,A>::try_allocate_in"
 end
 
 
-export."alloc::raw_vec::RawVec<T,A>::shrink_unchecked"
+proc."alloc::raw_vec::RawVec<T,A>::shrink_unchecked"
     dup.1
     dup.0
     u32mod.4
@@ -1522,7 +1522,7 @@ export."alloc::raw_vec::RawVec<T,A>::shrink_unchecked"
 end
 
 
-export."<alloc::alloc::Global as core::alloc::Allocator>::deallocate"
+proc."<alloc::alloc::Global as core::alloc::Allocator>::deallocate"
     dup.2
     eq.0
     neq.0
@@ -1534,7 +1534,7 @@ export."<alloc::alloc::Global as core::alloc::Allocator>::deallocate"
 end
 
 
-export."<alloc::alloc::Global as core::alloc::Allocator>::allocate"
+proc."<alloc::alloc::Global as core::alloc::Allocator>::allocate"
     mem_load.0x00011000
     push.16
     u32wrapping_sub
@@ -1641,12 +1641,12 @@ export."<alloc::alloc::Global as core::alloc::Allocator>::allocate"
 end
 
 
-export."<alloc::vec::Vec<T,A> as core::ops::drop::Drop>::drop"
+proc."<alloc::vec::Vec<T,A> as core::ops::drop::Drop>::drop"
     dropw
 end
 
 
-export."<alloc::raw_vec::RawVec<T,A> as core::ops::drop::Drop>::drop"
+proc."<alloc::raw_vec::RawVec<T,A> as core::ops::drop::Drop>::drop"
     dup.0
     dup.0
     u32mod.4
@@ -1690,7 +1690,7 @@ export."<alloc::raw_vec::RawVec<T,A> as core::ops::drop::Drop>::drop"
 end
 
 
-export."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
+proc."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
     push.32
     dup.2
     push.32
@@ -1901,16 +1901,16 @@ export."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
 end
 
 
-export."__rust_alloc"
-    push.1048620
+proc."__rust_alloc"
+    push.1048632
     movup.2
     swap.1
     exec."<miden_sdk_alloc::BumpAlloc as core::alloc::global::GlobalAlloc>::alloc"
 end
 
 
-export."__rust_alloc_zeroed"
-    push.1048620
+proc."__rust_alloc_zeroed"
+    push.1048632
     dup.1
     swap.2
     swap.3
@@ -1966,13 +1966,13 @@ export."__rust_alloc_zeroed"
 end
 
 
-export."__rust_dealloc"
+proc."__rust_dealloc"
     dropw dropw dropw
 end
 
 
-export."__rust_realloc"
-    push.1048620
+proc."__rust_realloc"
+    push.1048632
     dup.4
     swap.2
     swap.4
@@ -2055,12 +2055,12 @@ export."__rust_realloc"
 end
 
 
-export."__wasm_call_ctors"
+proc."__wasm_call_ctors"
 
 end
 
 
-export."cabi_post_miden:basic-wallet/basic-wallet@1.0.0#test-stdlib"
+export."cabi_post_miden:basic-wallet/aux@1.0.0#process-list-felt"
     dropw
 end
 
@@ -2075,317 +2075,22 @@ export.cabi_realloc_wit_bindgen_0_28_0
 end
 
 
-export."miden:basic-wallet/basic-wallet@1.0.0#receive-asset"
-    mem_load.0x00011000
-    push.64
-    dup.1
-    swap.1
-    u32wrapping_sub
-    push.4294967264
-    u32and
-    push.1114112
-    dup.1
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_sw
-    dup.0
-    add.12
-    u32assert
-    exec."wit_bindgen_rt::run_ctors_once"
-    dup.1
-    add.8
-    u32assert
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.2
-    add.4
-    u32assert
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.3
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.0
-    movup.7
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    push.32
-    dup.5
-    swap.1
-    u32wrapping_add
-    movup.5
-    swap.1
-    exec."miden_base_sys::bindings::account::add_asset"
-    push.1114112
-    movup.5
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_sw
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
+export."miden:basic-wallet/aux@1.0.0#process-core-asset"
+    exec."wit_bindgen_rt::run_ctors_once" push.0 assert
 end
 
 
-export."miden:basic-wallet/basic-wallet@1.0.0#send-asset"
-    mem_load.0x00011000
-    push.96
-    dup.1
-    swap.1
-    u32wrapping_sub
-    push.4294967264
-    u32and
-    push.1114112
-    dup.1
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_sw
-    dup.0
-    add.12
-    u32assert
-    exec."wit_bindgen_rt::run_ctors_once"
-    dup.1
-    add.8
-    u32assert
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.2
-    add.4
-    u32assert
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.3
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.4
-    add.44
-    u32assert
-    dup.1
-    movup.8
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.5
-    add.40
-    u32assert
-    dup.1
-    movup.14
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.6
-    add.36
-    u32assert
-    dup.1
-    movup.14
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.7
-    add.32
-    u32assert
-    dup.1
-    movup.14
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    dup.0
-    movup.13
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_felt
-    push.64
-    dup.9
-    swap.1
-    u32wrapping_add
-    dup.9
-    swap.1
-    exec."miden_base_sys::bindings::account::remove_asset"
-    push.32
-    dup.9
-    swap.1
-    u32wrapping_add
-    push.64
-    movup.10
-    swap.1
-    u32wrapping_add
-    movup.2
-    swap.12
-    movdn.2
-    swap.1
-    swap.3
-    swap.11
-    swap.1
-    exec."miden_base_sys::bindings::tx::create_note"
-    drop
-    push.1114112
-    movup.7
-    swap.1
-    dup.0
-    u32mod.16
-    dup.0
-    u32mod.4
-    swap.1
-    u32div.4
-    movup.2
-    u32div.16
-    exec.::intrinsics::mem::store_sw
-    movup.7
-    u32mod.4
-    assertz.err=250
-    movup.6
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
-    u32mod.4
-    assertz.err=250
+export."miden:basic-wallet/aux@1.0.0#process-list-felt"
+    exec."wit_bindgen_rt::run_ctors_once" push.0 assert
 end
 
 
-export."miden:basic-wallet/basic-wallet@1.0.0#test-felt-intrinsics"
+export."miden:basic-wallet/aux@1.0.0#test-felt-intrinsics"
     exec."wit_bindgen_rt::run_ctors_once" swap.1 add
 end
 
 
-export."miden:basic-wallet/basic-wallet@1.0.0#test-stdlib"
+export."miden:basic-wallet/aux@1.0.0#test-stdlib"
     mem_load.0x00011000
     push.96
     dup.1
@@ -2892,7 +2597,7 @@ export."miden:basic-wallet/basic-wallet@1.0.0#test-stdlib"
             u32div.16
             exec.::intrinsics::mem::store_sw
             push.0
-            add.1048612
+            add.1048616
             u32assert
             dup.9
             add.8
@@ -2959,9 +2664,314 @@ export."miden:basic-wallet/basic-wallet@1.0.0#test-stdlib"
             assertz.err=250
             u32mod.4
             assertz.err=250
-            push.1048612
+            push.1048616
         end
     end
+end
+
+
+export."miden:basic-wallet/basic-wallet@1.0.0#receive-asset"
+    mem_load.0x00011000
+    push.64
+    dup.1
+    swap.1
+    u32wrapping_sub
+    push.4294967264
+    u32and
+    push.1114112
+    dup.1
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_sw
+    dup.0
+    add.12
+    u32assert
+    exec."wit_bindgen_rt::run_ctors_once"
+    dup.1
+    add.8
+    u32assert
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.2
+    add.4
+    u32assert
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.3
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.0
+    movup.7
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    push.32
+    dup.5
+    swap.1
+    u32wrapping_add
+    movup.5
+    swap.1
+    exec."miden_base_sys::bindings::account::add_asset"
+    push.1114112
+    movup.5
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_sw
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+end
+
+
+export."miden:basic-wallet/basic-wallet@1.0.0#send-asset"
+    mem_load.0x00011000
+    push.96
+    dup.1
+    swap.1
+    u32wrapping_sub
+    push.4294967264
+    u32and
+    push.1114112
+    dup.1
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_sw
+    dup.0
+    add.12
+    u32assert
+    exec."wit_bindgen_rt::run_ctors_once"
+    dup.1
+    add.8
+    u32assert
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.2
+    add.4
+    u32assert
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.3
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.4
+    add.44
+    u32assert
+    dup.1
+    movup.8
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.5
+    add.40
+    u32assert
+    dup.1
+    movup.14
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.6
+    add.36
+    u32assert
+    dup.1
+    movup.14
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.7
+    add.32
+    u32assert
+    dup.1
+    movup.14
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    dup.0
+    movup.13
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_felt
+    push.64
+    dup.9
+    swap.1
+    u32wrapping_add
+    dup.9
+    swap.1
+    exec."miden_base_sys::bindings::account::remove_asset"
+    push.32
+    dup.9
+    swap.1
+    u32wrapping_add
+    push.64
+    movup.10
+    swap.1
+    u32wrapping_add
+    movup.2
+    swap.12
+    movdn.2
+    swap.1
+    swap.3
+    swap.11
+    swap.1
+    exec."miden_base_sys::bindings::tx::create_note"
+    drop
+    push.1114112
+    movup.7
+    swap.1
+    dup.0
+    u32mod.16
+    dup.0
+    u32mod.4
+    swap.1
+    u32div.4
+    movup.2
+    u32div.16
+    exec.::intrinsics::mem::store_sw
+    movup.7
+    u32mod.4
+    assertz.err=250
+    movup.6
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
+    u32mod.4
+    assertz.err=250
 end
 
 
