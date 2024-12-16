@@ -737,7 +737,7 @@ mod tests {
                 builder.ins().inttoptr(v5, Type::Ptr(Box::new(Type::U128)), SourceSpan::UNKNOWN);
             let v7 = builder.ins().load(v6, SourceSpan::UNKNOWN);
             let v8 = builder.ins().u64(1, SourceSpan::UNKNOWN);
-            builder.ins().call(example, &[v6, v4, v7, v7, v8], SourceSpan::UNKNOWN);
+            builder.ins().exec(example, &[v6, v4, v7, v7, v8], SourceSpan::UNKNOWN);
             let v10 = builder.ins().add_imm_unchecked(v1, Immediate::U32(72), SourceSpan::UNKNOWN);
             builder.ins().store(v3, v7, SourceSpan::UNKNOWN);
             let v11 =
@@ -773,7 +773,7 @@ mod tests {
         (let (v8 u64) (const.u64 1))
         (store.local local0 v2)
         (store.local local1 v3)
-        (let (v9 u32) (call (#foo #example) v6 v4 v7 v7 v8))
+        (let (v9 u32) (exec (#foo #example) v6 v4 v7 v7 v8))
         (let (v10 u32) (add.unchecked v1 72))
         (let (v13 (ptr u128)) (load.local local1))
         (store v13 v7)
@@ -844,7 +844,7 @@ mod tests {
             // block1
             builder.switch_to_block(block1);
             let v9 = builder.ins().u64(1, SourceSpan::UNKNOWN);
-            let call = builder.ins().call(example, &[v6, v4, v7, v7, v9], SourceSpan::UNKNOWN);
+            let call = builder.ins().exec(example, &[v6, v4, v7, v7, v9], SourceSpan::UNKNOWN);
             let v10 = builder.func.dfg.first_result(call);
             builder.ins().br(block3, &[v10], SourceSpan::UNKNOWN);
 
@@ -896,7 +896,7 @@ mod tests {
         (let (v9 u64) (const.u64 1))
         (store.local local0 v2)
         (store.local local1 v3)
-        (let (v10 u32) (call (#foo #example) v6 v4 v7 v7 v9))
+        (let (v10 u32) (exec (#foo #example) v6 v4 v7 v7 v9))
         (br (block 4)))
 
     (block 2

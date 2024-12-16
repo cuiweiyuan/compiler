@@ -457,6 +457,7 @@ pub enum Opcode {
     IsOdd,
     Min,
     Max,
+    Exec,
     Call,
     Syscall,
     Br,
@@ -485,7 +486,7 @@ impl Opcode {
     }
 
     pub fn is_call(&self) -> bool {
-        matches!(self, Self::Call | Self::Syscall)
+        matches!(self, Self::Exec | Self::Call | Self::Syscall)
     }
 
     pub fn is_commutative(&self) -> bool {
@@ -517,7 +518,7 @@ impl Opcode {
                 | Self::MemCpy
                 | Self::MemSize
                 | Self::Load
-                | Self::Call
+                | Self::Exec
                 | Self::Syscall
                 | Self::InlineAsm
                 | Self::Reload
@@ -531,7 +532,7 @@ impl Opcode {
                 | Self::MemSet
                 | Self::MemCpy
                 | Self::Store
-                | Self::Call
+                | Self::Exec
                 | Self::Syscall
                 | Self::InlineAsm
                 | Self::Spill
@@ -549,6 +550,7 @@ impl Opcode {
             | Self::MemGrow
             | Self::MemSet
             | Self::MemCpy
+            | Self::Exec
             | Self::Call
             | Self::Syscall
             | Self::Br
@@ -701,7 +703,7 @@ impl Opcode {
             // memcpy requires source, destination, and arity
             Self::MemSet | Self::MemCpy => 3,
             // Calls are entirely variable
-            Self::Call | Self::Syscall => 0,
+            Self::Exec | Self::Call | Self::Syscall => 0,
             // Unconditional branches have no fixed arguments
             Self::Br => 0,
             // Ifs have a single argument, the conditional
@@ -811,7 +813,7 @@ impl Opcode {
                 smallvec![ctrl_ty.pointee().expect("expected pointer type").clone()]
             }
             // Call results are handled separately
-            Self::Call | Self::Syscall | Self::InlineAsm => unreachable!(),
+            Self::Exec | Self::Call | Self::Syscall | Self::InlineAsm => unreachable!(),
         }
     }
 }
@@ -852,6 +854,7 @@ impl fmt::Display for Opcode {
             Self::Br => f.write_str("br"),
             Self::CondBr => f.write_str("condbr"),
             Self::Switch => f.write_str("switch"),
+            Self::Exec => f.write_str("exec"),
             Self::Call => f.write_str("call"),
             Self::Syscall => f.write_str("syscall"),
             Self::Ret => f.write_str("ret"),

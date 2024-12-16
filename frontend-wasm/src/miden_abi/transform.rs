@@ -86,7 +86,7 @@ pub fn no_transform(
     span: SourceSpan,
     _diagnostics: &DiagnosticsHandler,
 ) -> Vec<Value> {
-    let call = builder.ins().call(func_id, args, span);
+    let call = builder.ins().exec(func_id, args, span);
     let results = builder.inst_results(call);
     results.to_vec()
 }
@@ -99,7 +99,7 @@ pub fn list_return(
     span: SourceSpan,
     _diagnostics: &DiagnosticsHandler,
 ) -> Vec<Value> {
-    let call = builder.ins().call(func_id, args, span);
+    let call = builder.ins().exec(func_id, args, span);
     let results = builder.inst_results(call);
     assert_eq!(results.len(), 2, "List return strategy expects 2 results: length and pointer");
     // Return the first result (length) only
@@ -116,7 +116,7 @@ pub fn return_via_pointer(
 ) -> Vec<Value> {
     // Omit the last argument (pointer)
     let args_wo_pointer = &args[0..args.len() - 1];
-    let call = builder.ins().call(func_id, args_wo_pointer, span);
+    let call = builder.ins().exec(func_id, args_wo_pointer, span);
     let results = builder.inst_results(call).to_vec();
     let ptr_arg = *args.last().unwrap();
     let ptr_arg_ty = builder.data_flow_graph().value_type(ptr_arg).clone();

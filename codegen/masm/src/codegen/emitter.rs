@@ -818,7 +818,8 @@ impl<'b, 'f: 'b> BlockEmitter<'b, 'f> {
         let mut emitter = self.inst_emitter(inst_info.inst);
         match op.op {
             hir::Opcode::Syscall => emitter.syscall(op.callee, span),
-            hir::Opcode::Call => emitter.exec(op.callee, span),
+            hir::Opcode::Exec => emitter.exec(op.callee, span),
+            hir::Opcode::Call => emitter.call(op.callee, span),
             opcode => unimplemented!("unrecognized procedure call opcode: '{opcode}'"),
         }
     }

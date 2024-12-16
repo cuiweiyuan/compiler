@@ -372,6 +372,10 @@ Inst: Inst = {
         Inst::new(span!(source_id, l, r), inst_ty.into_inner(), values)
     },
 
+    <l:@L> "(" "exec" <callee:CalleeId> <operands:SpannedValueId*> ")" <r:@R> => {
+        Inst::new(span!(source_id, l, r), InstType::Call { opcode: Opcode::Exec, callee, operands }, vec![])
+    },
+
     <l:@L> "(" "call" <callee:CalleeId> <operands:SpannedValueId*> ")" <r:@R> => {
         Inst::new(span!(source_id, l, r), InstType::Call { opcode: Opcode::Call, callee, operands }, vec![])
     },
@@ -423,6 +427,10 @@ InstWithResult: Span<InstType> = {
     <l:@L> "(" <op_and_overflow:BinaryOpcode> <lhs:Operand> <rhs:Operand> ")" <r:@R> => {
         let (opcode, overflow) = op_and_overflow;
         Span::new(span!(source_id, l, r), InstType::BinaryOp { opcode, overflow, operands: [lhs, rhs] })
+    },
+
+    <l:@L> "(" "exec" <callee:CalleeId> <operands:SpannedValueId*> ")" <r:@R> => {
+        Span::new(span!(source_id, l, r), InstType::Call { opcode: Opcode::Exec, callee, operands })
     },
 
     <l:@L> "(" "call" <callee:CalleeId> <operands:SpannedValueId*> ")" <r:@R> => {
@@ -691,6 +699,7 @@ extern {
         "sext" => Token::Sext,
         "trunc" => Token::Trunc,
         "ret" => Token::Ret,
+        "exec" => Token::Exec,
         "call" => Token::Call,
         "call.indirect" => Token::CallIndirect,
         "syscall" => Token::Syscall,

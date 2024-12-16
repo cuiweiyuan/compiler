@@ -48,7 +48,7 @@ pub(crate) fn convert_mem_intrinsics(
                     signature,
                 );
             }
-            let call = builder.ins().call(func_id, &[], span);
+            let call = builder.ins().exec(func_id, &[], span);
             let value = builder.data_flow_graph().first_result(call);
             vec![value]
         }

@@ -334,6 +334,113 @@ impl<'a> OpEmitter<'a> {
         self.emit(Op::Exec(callee), span);
     }
 
+    /// Calls the given procedure via a `call` instruction.
+    ///
+    /// A function called using this operation is invoked in the **new** memory context
+    pub fn call(&mut self, callee: &hir::ExternalFunction, span: SourceSpan) {
+        let import = callee;
+        let callee = import.id;
+        let signature = &import.signature;
+        for i in 0..signature.arity() {
+            let param = &signature.params[i];
+            let arg = self.stack.pop().expect("operand stack is empty");
+            let ty = arg.ty();
+            // Validate the purpose matches
+            match param.purpose {
+                ArgumentPurpose::StructReturn => {
+                    panic!(
+                        "sret parameters are not supported in call instructions since they don't \
+                         make sense in a new memory context"
+                    );
+                }
+                ArgumentPurpose::Default => (),
+            }
+            // Validate that the argument type is valid for the parameter ABI
+            match param.extension {
+                // Types must match exactly
+                ArgumentExtension::None => {
+                    assert_eq!(
+                        ty, param.ty,
+                        "invalid call to {callee}: invalid argument type for parameter at index \
+                         {i}"
+                    );
+                }
+                // Caller can provide a smaller type which will be zero-extended to the expected
+                // type
+                //
+                // However, the argument must be an unsigned integer, and of smaller or equal size
+                // in order for the types to differ
+                ArgumentExtension::Zext if ty != param.ty => {
+                    assert!(
+                        param.ty.is_unsigned_integer(),
+                        "invalid function signature: zero-extension is only valid for unsigned \
+                         integer types"
+                    );
+                    assert!(
+                        ty.is_unsigned_integer(),
+                        "invalid call to {callee}: invalid argument type for parameter at index \
+                         {i}, expected unsigned integer type, got {ty}"
+                    );
+                    let expected_size = param.ty.size_in_bits();
+                    let provided_size = param.ty.size_in_bits();
+                    assert!(
+                        provided_size <= expected_size,
+                        "invalid call to {callee}: invalid argument type for parameter at index \
+                         {i}, expected integer width to be <= {expected_size} bits"
+                    );
+                    // Zero-extend this argument
+                    self.stack.push(arg);
+                    self.zext(&param.ty, span);
+                    self.stack.drop();
+                }
+                // Caller can provide a smaller type which will be sign-extended to the expected
+                // type
+                //
+                // However, the argument must be an integer which can fit in the range of the
+                // expected type
+                ArgumentExtension::Sext if ty != param.ty => {
+                    assert!(
+                        param.ty.is_signed_integer(),
+                        "invalid function signature: sign-extension is only valid for signed \
+                         integer types"
+                    );
+                    assert!(
+                        ty.is_integer(),
+                        "invalid call to {callee}: invalid argument type for parameter at index \
+                         {i}, expected integer type, got {ty}"
+                    );
+                    let expected_size = param.ty.size_in_bits();
+                    let provided_size = param.ty.size_in_bits();
+                    if ty.is_unsigned_integer() {
+                        assert!(
+                            provided_size < expected_size,
+                            "invalid call to {callee}: invalid argument type for parameter at \
+                             index {i}, expected unsigned integer width to be < {expected_size} \
+                             bits"
+                        );
+                    } else {
+                        assert!(
+                            provided_size <= expected_size,
+                            "invalid call to {callee}: invalid argument type for parameter at \
+                             index {i}, expected integer width to be <= {expected_size} bits"
+                        );
+                    }
+                    // Push the operand back on the stack for `sext`
+                    self.stack.push(arg);
+                    self.sext(&param.ty, span);
+                    self.stack.drop();
+                }
+                ArgumentExtension::Zext | ArgumentExtension::Sext => (),
+            }
+        }
+
+        for result in signature.results.iter().rev() {
+            self.push(result.ty.clone());
+        }
+
+        self.emit(Op::Call(callee), span);
+    }
+
     /// Execute the given procedure as a syscall.
     ///
     /// A function called using this operation is invoked in the same memory context as the caller.
