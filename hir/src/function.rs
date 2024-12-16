@@ -62,6 +62,13 @@ pub enum CallConv {
     ///
     /// In all other respects, this calling convention is the same as `SystemV`
     Kernel,
+    /// A function with this calling convention is expected to be called using the `call`
+    /// instruction. Since execution moves to a different contexe he callee does not have access to
+    /// caller's memory, so arguments and results are passed through the stack or through the
+    /// advice provider.
+    ///
+    /// see https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html
+    CrossCtx,
 }
 impl fmt::Display for CallConv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -70,6 +77,7 @@ impl fmt::Display for CallConv {
             Self::SystemV => f.write_str("C"),
             Self::Wasm => f.write_str("wasm"),
             Self::Kernel => f.write_str("kernel"),
+            Self::CrossCtx => f.write_str("cctx"),
         }
     }
 }

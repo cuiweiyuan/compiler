@@ -137,8 +137,7 @@ pub fn flatten_function_type(
     Ok(Signature {
         params: flat_params,
         results: flat_results,
-        // TODO: add and use CallConv::CrossCtx here
-        cc: CallConv::SystemV,
+        cc: CallConv::CrossCtx,
         linkage: Linkage::External,
     })
 }

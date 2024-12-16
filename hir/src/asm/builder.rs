@@ -2211,7 +2211,7 @@ fn execute_call(
     }
     match import.signature.cc {
         // For now, we're treating all calling conventions the same as SystemV
-        CallConv::Fast | CallConv::SystemV | CallConv::Kernel => {
+        CallConv::Fast | CallConv::SystemV | CallConv::Kernel | CallConv::CrossCtx => {
             // Visit the argument list in reverse (so that the top of the stack on entry
             // is the first argument), and allocate elements based on the argument types.
             let mut elements_needed = 0;
