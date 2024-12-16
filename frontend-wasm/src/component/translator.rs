@@ -189,10 +189,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 )?;
                 // Skip the shim and fixups core modules, they are a workaround for
                 // specify the core instance memory and reallod function for the lowering
-
-                // TODO:
-                // Imported function from the shim has empty module name and "0" as a if name.
-
                 if ir_module.name.as_str() != "wit-component:shim"
                     && ir_module.name.as_str() != "wit-component:fixups"
                 {
@@ -237,10 +233,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                     module: module.name(),
                     function: function_id,
                 };
-
-                // TODO:
-                // Find process_list_felt instead empty module name and "0" function name!
-                // Follow module_import.index through the shim modules/imports/exports?
 
                 let runtime_import_idx = self.lower_imports[index];
                 // dbg!(&module_import);

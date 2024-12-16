@@ -119,7 +119,15 @@ fn generate_lifting_function(
     // dbg!(&lifting_module_id);
     let mut module_builder = component_builder.module(lifting_module_id);
 
-    let import_lowered_sig = flatten_function_type(high_func_ty, FlatteningDirection::Lower);
+    let import_lowered_sig = flatten_function_type(high_func_ty, FlatteningDirection::Lower)
+        .map_err(|e| {
+            let message = format!(
+                "Miden CCABI import lifting generation. Signature for imported function {} \
+                 requires flattening. Error: {}",
+                import_func_id.function, e
+            );
+            diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
+        })?;
 
     if needs_transformation(&import_lowered_sig) {
         let message = format!(

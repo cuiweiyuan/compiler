@@ -5,8 +5,8 @@
 //! for the Wasm CM <-> core Wasm types conversion rules.
 
 use midenc_hir::{
-    types::Abi, AbiParam, ArgumentPurpose, CallConv, FunctionType, Linkage, Signature, StructType,
-    Type,
+    types::Abi, AbiParam, ArgumentExtension, ArgumentPurpose, CallConv, FunctionType, Linkage,
+    Signature, StructType, Type,
 };
 
 /// Lowering the import or lifting the export function
@@ -15,44 +15,85 @@ pub enum FlatteningDirection {
     Lower,
 }
 
-/// Flattens the given type into a list of ABI parameters.
-pub fn flatten_type(ty: &Type) -> Vec<AbiParam> {
+/// Flattens the given CanonABI type into a list of ABI parameters.
+pub fn flatten_type(ty: &Type) -> Result<Vec<AbiParam>, String> {
     // see https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#flattening
-    match ty {
-        Type::Unknown => todo!(),
-        Type::Unit => todo!(),
-        Type::Never => todo!(),
-        Type::I1 => todo!(),
-        Type::I8 => todo!(),
-        Type::U8 => todo!(),
-        Type::I16 => todo!(),
-        Type::U16 => todo!(),
-        Type::I32 => todo!(),
-        Type::U32 => todo!(),
-        Type::I64 => todo!(),
-        Type::U64 => todo!(),
-        Type::I128 => todo!(),
-        Type::U128 => todo!(),
-        Type::U256 => todo!(),
-        Type::F64 => todo!(),
-        Type::Felt => vec![AbiParam::new(Type::Felt)],
-        Type::Ptr(_) => todo!(),
-        Type::NativePtr(..) => todo!(),
-        Type::Struct(struct_ty) => {
-            struct_ty.fields().iter().flat_map(|field| flatten_type(&field.ty)).collect()
+    Ok(match ty {
+        Type::Unit => vec![],
+        Type::I1 => vec![AbiParam {
+            ty: Type::I32,
+            purpose: ArgumentPurpose::Default,
+            extension: ArgumentExtension::Zext,
+        }],
+        Type::I8 => vec![AbiParam {
+            ty: Type::I32,
+            purpose: ArgumentPurpose::Default,
+            extension: ArgumentExtension::Sext,
+        }],
+        Type::U8 => vec![AbiParam {
+            ty: Type::I32,
+            purpose: ArgumentPurpose::Default,
+            extension: ArgumentExtension::Zext,
+        }],
+        Type::I16 => vec![AbiParam {
+            ty: Type::I32,
+            purpose: ArgumentPurpose::Default,
+            extension: ArgumentExtension::Sext,
+        }],
+        Type::U16 => vec![AbiParam {
+            ty: Type::I32,
+            purpose: ArgumentPurpose::Default,
+            extension: ArgumentExtension::Zext,
+        }],
+        Type::I32 => vec![AbiParam::new(Type::I32)],
+        Type::U32 => vec![AbiParam::new(Type::I32)],
+        Type::I64 => vec![AbiParam::new(Type::I64)],
+        Type::U64 => vec![AbiParam::new(Type::I64)],
+        Type::I128 | Type::U128 | Type::U256 => {
+            panic!("CanonABI type flattening: not yet implemented {}", ty)
         }
-        Type::Array(..) => todo!(),
-        Type::List(_) => todo!(),
-    }
+        Type::F64 => {
+            let message = "CanonABI type flattening: unexpected f64 type".to_string();
+            return Err(message);
+        }
+        Type::Felt => vec![AbiParam::new(Type::Felt)],
+        Type::Struct(struct_ty) => struct_ty
+            .fields()
+            .iter()
+            .map(|field| flatten_type(&field.ty))
+            .collect::<Result<Vec<Vec<AbiParam>>, String>>()?
+            .into_iter()
+            .flatten()
+            .collect(),
+        Type::Array(elem_ty, len) => vec![AbiParam::new(*elem_ty.clone()); *len],
+        Type::List(elem_ty) => vec![
+            // pointer to the list element type
+            AbiParam::sret(*elem_ty.clone()),
+            // length of the list
+            AbiParam::new(Type::I32),
+        ],
+        Type::Unknown | Type::Never | Type::Ptr(_) | Type::NativePtr(..) => {
+            panic!("CanonABI type flattening: unexpected {} type", ty)
+        }
+    })
 }
 
-/// Flattens the given list of types into a list of ABI parameters.
-pub fn flatten_types(tys: &[Type]) -> Vec<AbiParam> {
-    tys.iter().flat_map(flatten_type).collect()
+/// Flattens the given list of CanonABI types into a list of ABI parameters.
+pub fn flatten_types(tys: &[Type]) -> Result<Vec<AbiParam>, String> {
+    Ok(tys
+        .iter()
+        .map(flatten_type)
+        .collect::<Result<Vec<Vec<AbiParam>>, String>>()?
+        .into_iter()
+        .flatten()
+        .collect())
 }
 
-/// Flattens the given Wasm CM level function type
-pub fn flatten_function_type(func_ty: &FunctionType, dir: FlatteningDirection) -> Signature {
+/// Flattens the given CanonABI function type
+pub fn flatten_function_type(
+    func_ty: &FunctionType,
+    dir: FlatteningDirection,
+) -> Result<Signature, String> {
     // from https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#flattening
     //
     // For a variety of practical reasons, we need to limit the total number of flattened
@@ -63,8 +104,8 @@ pub fn flatten_function_type(func_ty: &FunctionType, dir: FlatteningDirection) -
     assert_eq!(func_ty.abi, Abi::Wasm, "expected Wasm CM type");
     const MAX_FLAT_PARAMS: usize = 16;
     const MAX_FLAT_RESULTS: usize = 1;
-    let mut flat_params = flatten_types(&func_ty.params);
-    let mut flat_results = flatten_types(&func_ty.results);
+    let mut flat_params = flatten_types(&func_ty.params)?;
+    let mut flat_results = flatten_types(&func_ty.results)?;
     if flat_params.len() > MAX_FLAT_PARAMS {
         // from https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#flattening
         //
@@ -93,13 +134,13 @@ pub fn flatten_function_type(func_ty: &FunctionType, dir: FlatteningDirection) -
             }
         }
     }
-    Signature {
+    Ok(Signature {
         params: flat_params,
         results: flat_results,
         // TODO: add and use CallConv::CrossCtx here
         cc: CallConv::SystemV,
         linkage: Linkage::External,
-    }
+    })
 }
 
 /// Checks if the given function signature needs to be transformed, i.e., if it contains a pointer

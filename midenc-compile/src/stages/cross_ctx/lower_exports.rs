@@ -116,7 +116,14 @@ fn generate_lowering_function(
     let module_id = export_id.interface.full_name;
     let mut module_builder = component_builder.module(module_id);
     let cross_ctx_export_sig =
-        flatten_function_type(&export.function_ty, FlatteningDirection::Lift);
+        flatten_function_type(&export.function_ty, FlatteningDirection::Lift).map_err(|e| {
+            let message = format!(
+                "Miden CCABI export lowering generation. Signature for exported function {} \
+                 requires flattening. Error: {}",
+                export.function, e
+            );
+            diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
+        })?;
     if needs_transformation(&cross_ctx_export_sig) {
         let message = format!(
             "Miden CCABI export lowering generation. Signature for exported function {} requires \
