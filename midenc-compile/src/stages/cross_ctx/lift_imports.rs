@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeMap, VecDeque};
 
+use miden_assembly::Spanned;
 use midenc_hir::{
     diagnostics::Severity, pass::AnalysisManager, types::Abi, Block, Call, ComponentBuilder,
     ComponentImport, Function, FunctionIdent, FunctionType, InstBuilder, Instruction,
@@ -80,6 +81,7 @@ impl Stage for LiftImportsCrossCtxStage {
                 &cabi_import.interface_function_ty,
                 import_func_id,
                 import_func_sig.clone(),
+                core_import_func_id.function.span(),
                 &session.diagnostics,
             )?;
             lifted_imports.insert(lifting_func_id, new_import.into());
@@ -111,6 +113,7 @@ fn generate_lifting_function(
     high_func_ty: &FunctionType,
     import_func_id: FunctionIdent,
     import_func_sig: Signature,
+    span: SourceSpan,
     diagnostics: &DiagnosticsHandler,
 ) -> CompilerResult<(MidenAbiImport, FunctionIdent)> {
     // get or create the module for the interface
@@ -159,11 +162,10 @@ fn generate_lifting_function(
             diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
         })?;
     }
-    // TODO: use the span from the caller
-    let call = builder.ins().call(import_func_id, &params, SourceSpan::UNKNOWN);
+    let call = builder.ins().call(import_func_id, &params, span);
     // dbg!(&sig);
     let result = builder.first_result(call);
-    builder.ins().ret(Some(result), SourceSpan::UNKNOWN);
+    builder.ins().ret(Some(result), span);
     let function_id = builder.build()?;
     module_builder.build()?;
     let component_import = MidenAbiImport::new(FunctionType {

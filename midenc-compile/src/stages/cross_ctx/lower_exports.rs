@@ -2,12 +2,12 @@
 
 use std::collections::BTreeMap;
 
+use miden_assembly::Spanned;
 use midenc_hir::{
     diagnostics::Severity,
     pass::AnalysisManager,
     types::Abi::{self, Canonical},
     ComponentBuilder, ComponentExport, FunctionType, InstBuilder, InterfaceFunctionIdent,
-    SourceSpan,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
@@ -156,11 +156,11 @@ fn generate_lowering_function(
             diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
         })?;
     }
-    // TODO: use the span from the callee
-    let call = builder.ins().exec(export.function, &params, SourceSpan::UNKNOWN);
+    let span = export.function.function.span();
+    let call = builder.ins().exec(export.function, &params, span);
     // dbg!(&sig);
     let result = builder.first_result(call);
-    builder.ins().ret(Some(result), SourceSpan::UNKNOWN);
+    builder.ins().ret(Some(result), span);
     let function_id = builder.build()?;
     module_builder.build()?;
     let component_export = ComponentExport {
