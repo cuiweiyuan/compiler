@@ -104,7 +104,7 @@ impl Executor {
         Ok(self)
     }
 
-    /// Set the contents of memory for the shadow stack frame of the entrypint
+    /// Set the contents of memory for the shadow stack frame of the entrypoint
     pub fn with_advice_inputs(&mut self, advice: AdviceInputs) -> &mut Self {
         self.advice.extend(advice);
         self
