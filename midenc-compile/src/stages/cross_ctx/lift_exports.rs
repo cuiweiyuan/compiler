@@ -151,6 +151,8 @@ fn generate_lifting_function(
         })?;
     }
     let span = export.function.function.span();
+    // NOTE: handle lifting/lowering for non-scalar types
+    // see https://github.com/0xPolygonMiden/compiler/pull/357
     let call = builder.ins().exec(export.function, &params, span);
     // dbg!(&sig);
     let result = builder.first_result(call);

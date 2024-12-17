@@ -162,6 +162,8 @@ fn generate_lowering_function(
             diagnostics.diagnostic(Severity::Error).with_message(message).into_report()
         })?;
     }
+    // NOTE: handle lifting/lowering for non-scalar types
+    // see https://github.com/0xPolygonMiden/compiler/pull/357
     let call = builder.ins().call(import_func_id, &params, span);
     // dbg!(&sig);
     let result = builder.first_result(call);
