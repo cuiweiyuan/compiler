@@ -31,7 +31,7 @@ panic = "abort"
 # library code unintentionally
 panic = "abort"
 opt-level = 1
-debug-assertions = false
+debug-assertions = true
 overflow-checks = false
 debug = true
 
@@ -42,4 +42,3 @@ package = "miden:cross-ctx-account"
 [package.metadata.component.target.dependencies]
 "miden:base" = { path = "../wit-sdk/miden.wit" }
 "miden:core-import" = { path = "../wit-sdk/miden-core-import.wit" }
-

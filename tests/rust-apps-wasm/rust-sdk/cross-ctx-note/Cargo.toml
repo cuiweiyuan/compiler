@@ -31,7 +31,7 @@ panic = "abort"
 # library code unintentionally
 panic = "abort"
 opt-level = 1
-debug-assertions = false
+debug-assertions = true
 overflow-checks = false
 debug = true
 
