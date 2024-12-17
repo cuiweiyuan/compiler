@@ -62,13 +62,23 @@ pub enum CallConv {
     ///
     /// In all other respects, this calling convention is the same as `SystemV`
     Kernel,
+    /// This calling convention is used for the synthetic functions generated for the Wasm CM
+    /// export (`canon lift`), see
+    /// https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#lifting-and-lowering-values
+    ///
     /// A function with this calling convention is expected to be called using the `call`
     /// instruction. Since execution moves to a different contexe he callee does not have access to
     /// caller's memory, so arguments and results are passed through the stack or through the
     /// advice provider.
-    ///
     /// see https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html
-    CrossCtx,
+    CanonLift,
+    /// This calling convention is used for the synthetic functions generated for the Wasm CM
+    /// import (`canon lower`), see
+    /// https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#lifting-and-lowering-values
+    ///
+    /// A function with this calling convention is expected to be called using the `exec` instruction.
+    /// see https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/execution_contexts.html
+    CanonLower,
 }
 impl fmt::Display for CallConv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -77,7 +87,8 @@ impl fmt::Display for CallConv {
             Self::SystemV => f.write_str("C"),
             Self::Wasm => f.write_str("wasm"),
             Self::Kernel => f.write_str("kernel"),
-            Self::CrossCtx => f.write_str("cctx"),
+            Self::CanonLift => f.write_str("lift"),
+            Self::CanonLower => f.write_str("lower"),
         }
     }
 }

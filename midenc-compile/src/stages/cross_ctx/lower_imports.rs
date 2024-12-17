@@ -4,15 +4,14 @@ use std::collections::{BTreeMap, VecDeque};
 
 use miden_assembly::Spanned;
 use midenc_hir::{
-    diagnostics::Severity, pass::AnalysisManager, types::Abi, Block, Call, ComponentBuilder,
-    ComponentImport, Function, FunctionIdent, FunctionType, InstBuilder, Instruction,
-    MidenAbiImport, Signature, SourceSpan, Symbol, UnsafeRef,
+    diagnostics::Severity, pass::AnalysisManager, types::Abi, Block, Call, CallConv,
+    ComponentBuilder, ComponentImport, Function, FunctionIdent, FunctionType, InstBuilder,
+    Instruction, MidenAbiImport, Signature, SourceSpan, Symbol, UnsafeRef,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
 use super::flat::{
     assert_core_wasm_signature_equivalence, flatten_function_type, needs_transformation,
-    FlatteningDirection,
 };
 use crate::{stage::Stage, CompilerResult, LinkerInput};
 
@@ -122,8 +121,8 @@ fn generate_lowering_function(
     // dbg!(&lowering_module_id);
     let mut module_builder = component_builder.module(lowering_module_id);
 
-    let import_lowered_sig = flatten_function_type(high_func_ty, FlatteningDirection::Lower)
-        .map_err(|e| {
+    let import_lowered_sig =
+        flatten_function_type(high_func_ty, CallConv::CanonLower).map_err(|e| {
             let message = format!(
                 "Miden CCABI import lowering generation. Signature for imported function {} \
                  requires flattening. Error: {}",

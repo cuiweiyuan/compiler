@@ -7,13 +7,12 @@ use midenc_hir::{
     diagnostics::Severity,
     pass::AnalysisManager,
     types::Abi::{self, Canonical},
-    ComponentBuilder, ComponentExport, FunctionType, InstBuilder, InterfaceFunctionIdent,
+    CallConv, ComponentBuilder, ComponentExport, FunctionType, InstBuilder, InterfaceFunctionIdent,
 };
 use midenc_session::{DiagnosticsHandler, Session};
 
 use super::flat::{
     assert_core_wasm_signature_equivalence, flatten_function_type, needs_transformation,
-    FlatteningDirection,
 };
 use crate::{stage::Stage, CompilerResult, LinkerInput};
 
@@ -110,8 +109,8 @@ fn generate_lifting_function(
     // get or create the module for the interface
     let module_id = export_id.interface.full_name;
     let mut module_builder = component_builder.module(module_id);
-    let cross_ctx_export_sig =
-        flatten_function_type(&export.function_ty, FlatteningDirection::Lift).map_err(|e| {
+    let cross_ctx_export_sig = flatten_function_type(&export.function_ty, CallConv::CanonLift)
+        .map_err(|e| {
             let message = format!(
                 "Miden CCABI export lifting generation. Signature for exported function {} \
                  requires flattening. Error: {}",

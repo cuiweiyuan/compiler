@@ -9,12 +9,6 @@ use midenc_hir::{
     Signature, StructType, Type,
 };
 
-/// Lowering the import or lifting the export function
-pub enum FlatteningDirection {
-    Lift,
-    Lower,
-}
-
 /// Flattens the given CanonABI type into a list of ABI parameters.
 pub fn flatten_type(ty: &Type) -> Result<Vec<AbiParam>, String> {
     // see https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#flattening
@@ -90,10 +84,7 @@ pub fn flatten_types(tys: &[Type]) -> Result<Vec<AbiParam>, String> {
 }
 
 /// Flattens the given CanonABI function type
-pub fn flatten_function_type(
-    func_ty: &FunctionType,
-    dir: FlatteningDirection,
-) -> Result<Signature, String> {
+pub fn flatten_function_type(func_ty: &FunctionType, cc: CallConv) -> Result<Signature, String> {
     // from https://github.com/WebAssembly/component-model/blob/main/design/mvp/CanonicalABI.md#flattening
     //
     // For a variety of practical reasons, we need to limit the total number of flattened
@@ -124,20 +115,21 @@ pub fn flatten_function_type(
         // returning an `i32` as a return value.
         assert_eq!(func_ty.results.len(), 1, "expected a single result");
         let result = func_ty.results.first().expect("unexpected empty results").clone();
-        match dir {
-            FlatteningDirection::Lift => {
+        match cc {
+            CallConv::CanonLift => {
                 flat_results = vec![AbiParam::sret(Type::Ptr(result.into()))];
             }
-            FlatteningDirection::Lower => {
+            CallConv::CanonLower => {
                 flat_params.push(AbiParam::sret(Type::Ptr(result.into())));
                 flat_results = vec![];
             }
+            _ => panic!("unexpected call convention, only CanonLift and CanonLower are supported"),
         }
     }
     Ok(Signature {
         params: flat_params,
         results: flat_results,
-        cc: CallConv::CrossCtx,
+        cc,
         linkage: Linkage::External,
     })
 }
