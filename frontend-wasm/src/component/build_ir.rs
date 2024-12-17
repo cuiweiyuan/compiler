@@ -21,7 +21,7 @@ pub fn translate_component(
     let component_types = component_types_builder.finish();
     let parsed_modules = parsed_component.static_modules;
     let translator = ComponentTranslator::new(component_types, parsed_modules, config, session);
-    translator.translate(linearized_component_translation)
+    translator.translate(linearized_component_translation, session.diagnostics.as_ref())
 }
 
 fn parse<'data>(

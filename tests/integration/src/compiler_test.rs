@@ -445,7 +445,7 @@ impl CompilerTestBuilder {
                         },
                     )
                 }));
-                dbg!(&inputs);
+                // dbg!(&inputs);
 
                 CompilerTest {
                     config: self.config,
@@ -1090,7 +1090,7 @@ impl CompilerTest {
     /// Get the compiled IR MASM program
     pub fn ir_masm_program(&mut self) -> Arc<midenc_codegen_masm::Program> {
         if self.ir_masm_program.is_none() {
-            self.compile_wasm_to_masm_program();
+            self.compile_wasm_to_masm_program().unwrap();
         }
         match self.ir_masm_program.as_ref().unwrap().as_ref() {
             Ok(prog) => prog.clone(),
@@ -1101,7 +1101,7 @@ impl CompilerTest {
     /// Get the compiled [miden_package::Package]
     pub fn compiled_package(&mut self) -> Arc<miden_package::Package> {
         if self.package.is_none() {
-            self.compile_wasm_to_masm_program();
+            self.compile_wasm_to_masm_program().unwrap();
         }
         match self.package.as_ref().unwrap().as_ref() {
             Ok(prog) => prog.clone(),
@@ -1112,7 +1112,7 @@ impl CompilerTest {
     /// Get the MASM source code
     pub fn masm_src(&mut self) -> String {
         if self.masm_src.is_none() {
-            self.compile_wasm_to_masm_program();
+            self.compile_wasm_to_masm_program().unwrap();
         }
         self.masm_src.clone().unwrap()
     }
@@ -1126,7 +1126,7 @@ impl CompilerTest {
         }
     }
 
-    pub(crate) fn compile_wasm_to_masm_program(&mut self) {
+    pub(crate) fn compile_wasm_to_masm_program(&mut self) -> Result<(), String> {
         use midenc_codegen_masm::MasmArtifact;
         use midenc_compile::compile_to_memory_with_pre_assembly_stage;
         use midenc_hir::pass::AnalysisManager;
@@ -1148,13 +1148,13 @@ impl CompilerTest {
             };
         let package =
             compile_to_memory_with_pre_assembly_stage(self.session.clone(), &mut stage as _)
-                .map_err(format_report)
-                .unwrap_or_else(|err| panic!("{err}"))
+                .map_err(format_report)?
                 .unwrap_mast();
         assert!(src.is_some(), "failed to pretty print masm artifact");
         self.masm_src = src;
         self.ir_masm_program = masm_program.map(Ok);
         self.package = Some(Ok(Arc::new(package)));
+        Ok(())
     }
 }
 

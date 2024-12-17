@@ -4,7 +4,7 @@ use midenc_hir::{
     MidenAbiImport, Symbol,
 };
 use midenc_hir_type::Abi;
-use midenc_session::Session;
+use midenc_session::{DiagnosticsHandler, Session};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -73,6 +73,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
     pub fn translate(
         mut self,
         wasm_translation: LinearComponentTranslation,
+        diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<midenc_hir::Component> {
         let mut component_builder: midenc_hir::ComponentBuilder<'a> =
             midenc_hir::ComponentBuilder::new(&self.session.diagnostics);
@@ -84,6 +85,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                         instantiate_module,
                         &mut component_builder,
                         &wasm_translation,
+                        diagnostics,
                     )?;
                 }
                 GlobalInitializer::LowerImport {
@@ -117,7 +119,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
             }
         }
         for (name, export) in &wasm_translation.component.exports {
-            self.build_export(export, name, None, &mut component_builder)?;
+            self.build_export(export, name.clone(), None, &mut component_builder)?;
         }
         Ok(component_builder.build())
     }
@@ -128,6 +130,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         instantiate_module: &InstantiateModule,
         component_builder: &mut ComponentBuilder<'_>,
         wasm_translation: &LinearComponentTranslation,
+        diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<()> {
         match instantiate_module {
             InstantiateModule::Static(static_module_idx, args) => {
@@ -163,6 +166,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                                 idx,
                                 &wasm_translation.component,
                                 component_builder,
+                                diagnostics,
                             )? {
                                 module_args.push(arg)
                             }
@@ -185,10 +189,6 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 )?;
                 // Skip the shim and fixups core modules, they are a workaround for
                 // specify the core instance memory and reallod function for the lowering
-
-                // TODO:
-                // Imported function from the shim has empty module name and "0" as a if name.
-
                 if ir_module.name.as_str() != "wit-component:shim"
                     && ir_module.name.as_str() != "wit-component:fixups"
                 {
@@ -218,6 +218,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
         idx: usize,
         wasm_component: &LinearComponent,
         component_builder: &mut ComponentBuilder<'_>,
+        _diagnostics: &DiagnosticsHandler,
     ) -> WasmResult<Option<ModuleArgument>> {
         match trampoline {
             Trampoline::LowerImport {
@@ -226,15 +227,12 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 options,
             } => {
                 let module_import = module.imports.get(idx).expect("module import not found");
-                let function_id = module.func_name(module_import.index.unwrap_func()).into();
+                let func_index = module_import.index.unwrap_func();
+                let function_id = module.func_name(func_index).into();
                 let function_id = FunctionIdent {
                     module: module.name(),
                     function: function_id,
                 };
-
-                // TODO:
-                // Find process_list_felt instead empty module name and "0" function name!
-                // Follow module_import.index through the shim modules/imports/exports?
 
                 let runtime_import_idx = self.lower_imports[index];
                 // dbg!(&module_import);
@@ -300,7 +298,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
     fn translate_import(
         &self,
         runtime_import_index: RuntimeImportIndex,
-        signature: TypeFuncIndex,
+        high_func_ty: TypeFuncIndex,
         options: &CanonicalOptions,
         wasm_component: &LinearComponent,
     ) -> WasmResult<Option<midenc_hir::ComponentImport>> {
@@ -338,7 +336,7 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 interface: InterfaceIdent::from_full_ident(&full_interface_name),
                 function: Symbol::intern(import_func_name),
             };
-            let lifted_func_ty = convert_lifted_func_ty(&signature, &self.component_types);
+            let lifted_func_ty = convert_lifted_func_ty(&high_func_ty, &self.component_types);
             let component_import =
                 midenc_hir::ComponentImport::CanonAbiImport(CanonAbiImport::new(
                     interface_function,
@@ -353,16 +351,16 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
     fn build_export(
         &self,
         export: &Export,
-        name: &String,
+        name: String,
         interface: Option<String>,
         component_builder: &mut ComponentBuilder,
     ) -> WasmResult<()> {
         match export {
             Export::LiftedFunction { ty, func, options } => {
-                dbg!(name);
+                // dbg!(name);
                 // The inline export does no have an interface name
                 let interface = interface.unwrap_or_default();
-                dbg!(&interface);
+                // dbg!(&interface);
                 let export_name = InterfaceFunctionIdent::from_full(interface, name.clone());
                 let export = self.build_export_lifted_function(func, ty, options)?;
                 component_builder.add_export(export_name, export);
@@ -372,7 +370,12 @@ impl<'a, 'data> ComponentTranslator<'a, 'data> {
                 let interface = Some(name.clone());
                 // Flatten any(nested) interface instance exports into the IR `Component` exports
                 for (export_name, export) in exports {
-                    self.build_export(export, export_name, interface.clone(), component_builder)?;
+                    self.build_export(
+                        export,
+                        export_name.clone(),
+                        interface.clone(),
+                        component_builder,
+                    )?;
                 }
                 Ok(())
             }

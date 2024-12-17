@@ -14,7 +14,7 @@ pub enum ParseOutput {
     /// We parsed HIR into the AST from text
     Ast(Box<ast::Module>),
     /// We parsed HIR from a Wasm module or other binary format
-    Hir(Box<hir::Module>),
+    Hir(Box<hir::Component>),
     /// We parsed MASM from a Miden Assembly module or other binary format
     Masm(Box<midenc_codegen_masm::Module>),
 }
@@ -129,10 +129,13 @@ impl ParseStage {
         session: &Session,
         config: &WasmTranslationConfig,
     ) -> CompilerResult<ParseOutput> {
-        let module = wasm::translate(bytes, config, session)?.unwrap_one_module();
-        log::debug!("parsed hir module from wasm bytes: {}", module.name.as_str());
+        let component = wasm::translate(bytes, config, session)?;
+        log::debug!(
+            "parsed hir component from wasm bytes with first module name: {}",
+            component.name()
+        );
 
-        Ok(ParseOutput::Hir(module))
+        Ok(ParseOutput::Hir(component.into()))
     }
 
     fn parse_hir_from_wat_file(
@@ -146,9 +149,9 @@ impl ParseStage {
             ..Default::default()
         };
         let wasm = wat::parse_file(path).into_diagnostic().wrap_err("failed to parse wat")?;
-        let module = wasm::translate(&wasm, &config, session)?.unwrap_one_module();
+        let component = wasm::translate(&wasm, &config, session)?;
 
-        Ok(ParseOutput::Hir(module))
+        Ok(ParseOutput::Hir(component.into()))
     }
 
     fn parse_hir_from_wat_bytes(
@@ -158,9 +161,9 @@ impl ParseStage {
         config: &WasmTranslationConfig,
     ) -> CompilerResult<ParseOutput> {
         let wasm = wat::parse_bytes(bytes).into_diagnostic().wrap_err("failed to parse wat")?;
-        let module = wasm::translate(&wasm, config, session)?.unwrap_one_module();
+        let component = wasm::translate(&wasm, config, session)?;
 
-        Ok(ParseOutput::Hir(module))
+        Ok(ParseOutput::Hir(component.into()))
     }
 
     fn parse_masm_from_file(&self, path: &Path, session: &Session) -> CompilerResult<ParseOutput> {

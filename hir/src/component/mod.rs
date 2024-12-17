@@ -1,6 +1,7 @@
 use alloc::collections::BTreeMap;
 use core::ops::{Deref, DerefMut};
 
+use diagnostics::Spanned;
 use indexmap::IndexMap;
 use midenc_hir_type::Abi;
 
@@ -48,10 +49,10 @@ impl formatter::PrettyPrint for CanonicalOptions {
 /// the Wasm Component Model Canonical ABI.
 #[derive(Debug, Clone)]
 pub struct CanonAbiImport {
-    /// The interfact function name that is being imported
+    /// The interface function name that is being imported (Wasm CM level)
     pub interface_function: InterfaceFunctionIdent,
-    /// The component(lifted) type of the imported function
-    function_ty: FunctionType,
+    /// The interface function type (Wasm CM level)
+    pub interface_function_ty: FunctionType,
     /// Any options associated with this import
     pub options: CanonicalOptions,
 }
@@ -59,19 +60,15 @@ pub struct CanonAbiImport {
 impl CanonAbiImport {
     pub fn new(
         interface_function: InterfaceFunctionIdent,
-        function_ty: FunctionType,
+        high_func_ty: FunctionType,
         options: CanonicalOptions,
     ) -> Self {
-        assert_eq!(function_ty.abi, Abi::Wasm, "expected Abi::Wasm function type ABI");
+        assert_eq!(high_func_ty.abi, Abi::Wasm, "expected Abi::Wasm function type ABI");
         Self {
             interface_function,
-            function_ty,
+            interface_function_ty: high_func_ty,
             options,
         }
-    }
-
-    pub fn function_ty(&self) -> &FunctionType {
-        &self.function_ty
     }
 }
 
@@ -90,7 +87,7 @@ impl MidenAbiImport {
 }
 
 /// A component import
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::From)]
 pub enum ComponentImport {
     /// A Wasm import that is following the Wasm Component Model Canonical ABI
     CanonAbiImport(CanonAbiImport),
@@ -117,7 +114,7 @@ impl formatter::PrettyPrint for ComponentImport {
     fn render(&self) -> formatter::Document {
         use crate::formatter::*;
         let function_ty_str = match self {
-            ComponentImport::CanonAbiImport(import) => import.function_ty.to_string(),
+            ComponentImport::CanonAbiImport(import) => import.interface_function_ty.to_string(),
             ComponentImport::MidenAbiImport(import) => import.function_ty.to_string(),
         };
         let name = match self {
@@ -140,7 +137,7 @@ impl formatter::PrettyPrint for ComponentImport {
 }
 
 /// A component export
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ComponentExport {
     /// The module function that is being exported
     pub function: FunctionIdent,
@@ -187,16 +184,30 @@ impl Component {
         Self::default()
     }
 
+    /// Return the name of this component
+    pub fn name(&self) -> Ident {
+        // Temporary imterim solution until we have a proper way to name components
+        let module_names = self.modules.keys().fold(String::new(), |acc, name| {
+            if acc.is_empty() {
+                name.as_str().to_string()
+            } else {
+                acc + "+" + name.as_str()
+            }
+        });
+        Ident::new(Symbol::intern(&module_names), self.modules.first().unwrap().0.span())
+    }
+
     /// Return a reference to the module table for this program
     pub fn modules(&self) -> &IndexMap<Ident, Box<Module>> {
         &self.modules
     }
 
+    /// Consume this component and return its modules
     pub fn to_modules(mut self) -> Vec<(Ident, Box<Module>)> {
         self.modules.drain(..).collect()
     }
 
-    /// Return a mutable reference to the module table for this program
+    /// Drains the modules from this component and returns a mutable reference to them
     pub fn modules_mut(&mut self) -> &mut IndexMap<Ident, Box<Module>> {
         &mut self.modules
     }
@@ -306,6 +317,30 @@ impl formatter::PrettyPrint for Component {
     }
 }
 
+impl midenc_session::Emit for Component {
+    fn name(&self) -> Option<crate::Symbol> {
+        Some(self.name().as_symbol())
+    }
+
+    fn output_type(&self, _mode: midenc_session::OutputMode) -> midenc_session::OutputType {
+        midenc_session::OutputType::Hir
+    }
+
+    fn write_to<W: std::io::Write>(
+        &self,
+        mut writer: W,
+        mode: midenc_session::OutputMode,
+        _session: &midenc_session::Session,
+    ) -> std::io::Result<()> {
+        assert_eq!(
+            mode,
+            midenc_session::OutputMode::Text,
+            "binary mode is not supported for HIR Components"
+        );
+        writer.write_fmt(format_args!("{}", self))
+    }
+}
+
 /// This struct provides an ergonomic way to construct a [Component] in an imperative fashion.
 ///
 /// Simply create the builder, add/build one or more modules, then call `link` to obtain a
@@ -328,6 +363,17 @@ impl<'a> ComponentBuilder<'a> {
         }
     }
 
+    /// Create a new [ComponentBuilder] from a [Component].
+    pub fn load(component: Component, diagnostics: &'a DiagnosticsHandler) -> Self {
+        Self {
+            modules: component.modules,
+            imports: component.imports,
+            exports: component.exports,
+            entry: None,
+            diagnostics,
+        }
+    }
+
     /// Set the entrypoint for the [Component] being built.
     #[inline]
     pub fn with_entrypoint(mut self, id: FunctionIdent) -> Self {
@@ -343,6 +389,21 @@ impl<'a> ComponentBuilder<'a> {
     /// Returns `Err` if a module with the same name already exists
     pub fn with_module(mut self, module: Box<Module>) -> Result<Self, ModuleConflictError> {
         self.add_module(module).map(|_| self)
+    }
+
+    /// Replace the exports of the [Component] being built.
+    pub fn with_exports(
+        mut self,
+        exports: BTreeMap<InterfaceFunctionIdent, ComponentExport>,
+    ) -> Self {
+        self.exports = exports;
+        self
+    }
+
+    /// Replace the imports of the [Component] being built.
+    pub fn with_imports(mut self, imports: BTreeMap<FunctionIdent, ComponentImport>) -> Self {
+        self.imports = imports;
+        self
     }
 
     /// Add `module` to the set of modules to link into the final [Component]
@@ -375,12 +436,57 @@ impl<'a> ComponentBuilder<'a> {
         }
     }
 
+    /// Add an import to the [Component] being built. Overwrites any existing import with the same
+    /// `function_id`.
     pub fn add_import(&mut self, function_id: FunctionIdent, import: ComponentImport) {
         self.imports.insert(function_id, import);
     }
 
+    /// Add an export to the [Component] being built. Overwrites any existing export with the same
+    /// `name`.
     pub fn add_export(&mut self, name: InterfaceFunctionIdent, export: ComponentExport) {
         self.exports.insert(name, export);
+    }
+
+    pub fn imports(&self) -> &BTreeMap<FunctionIdent, ComponentImport> {
+        &self.imports
+    }
+
+    pub fn exports(&self) -> &BTreeMap<InterfaceFunctionIdent, ComponentExport> {
+        &self.exports
+    }
+
+    /// Look up the signature of a function in this program by `id`
+    pub fn signature(&self, id: &FunctionIdent) -> Option<&Signature> {
+        let module = self.modules.get(&id.module)?;
+        module.function(id.function).map(|f| &f.signature)
+    }
+
+    /// Look up the signature of an imported function by `id`
+    ///
+    /// NOTE: Due to the imports are stored on the function level this searches in **all** functions of
+    /// **all** modules of this component.
+    pub fn import_signature(&self, id: &FunctionIdent) -> Option<&Signature> {
+        for module in self.modules.values() {
+            for function in module.functions.iter() {
+                for import in function.imports() {
+                    if &import.id == id {
+                        return Some(&import.signature);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Takes the modules from this component builder leaving it with empty modules list
+    pub fn take_modules(&mut self) -> impl Iterator<Item = (Ident, Box<Module>)> + '_ {
+        self.modules.drain(..)
+    }
+
+    /// Set the modules of this component
+    pub fn set_modules(&mut self, modules: IndexMap<Ident, Box<Module>>) {
+        self.modules = modules;
     }
 
     pub fn build(self) -> Component {

@@ -1,4 +1,4 @@
-use miden_assembly::LibraryPath;
+use miden_assembly::{ast, LibraryNamespace, LibraryPath, Span};
 use midenc_hir::{
     self as hir,
     pass::{AnalysisManager, ConversionPass, ConversionResult},
@@ -108,8 +108,15 @@ impl ConversionPass for ConvertHirToMasm<hir::Module> {
         } else {
             ModuleKind::Library
         };
-        let name = LibraryPath::new(&module.name).unwrap_or_else(|err| {
-            panic!("invalid module name '{}': {}", module.name.as_str(), err)
+        let name = LibraryPath::new(&module.name).unwrap_or_else(|_| {
+            // Fallback for Wasm CM naming `namespace:package/interface@version`
+            LibraryPath::new_from_components(
+                LibraryNamespace::Anon,
+                [ast::Ident::new_unchecked(Span::new(
+                    module.name.span,
+                    module.name.as_str().into(),
+                ))],
+            )
         });
         let mut masm_module = Box::new(masm::Module::new(name, kind));
 

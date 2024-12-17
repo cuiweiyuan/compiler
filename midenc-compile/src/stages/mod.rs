@@ -16,6 +16,7 @@ use crate::{CompilerResult, CompilerStopped};
 
 mod assemble;
 mod codegen;
+mod cross_ctx;
 mod link;
 mod parse;
 mod rewrite;
@@ -24,6 +25,7 @@ mod sema;
 pub use self::{
     assemble::{Artifact, AssembleStage},
     codegen::CodegenStage,
+    cross_ctx::{lift_exports::LiftExportsCrossCtxStage, lower_imports::LowerImportsCrossCtxStage},
     link::{LinkerInput, LinkerOutput, LinkerStage},
     parse::{ParseOutput, ParseStage},
     rewrite::ApplyRewritesStage,
