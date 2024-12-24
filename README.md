@@ -4,7 +4,7 @@
 > This project is a work-in-progress, so if you encounter bugs or other
 > things which are not covered in the issue tracker, there is a good chance we know
 > about them, but please do report them anyway so we can ensure they are tracked
-> publically as well.
+> publicly as well.
 
 This repository contains the Miden compiler, which can be used both as a compiler backend
 for existing languages that wish to target Miden Assembly using a standard SSA-based IR;

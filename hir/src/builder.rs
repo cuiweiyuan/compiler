@@ -198,7 +198,7 @@ pub trait InstBuilderBase<'f>: Sized {
     fn data_flow_graph_mut(&mut self) -> &mut DataFlowGraph;
     /// Return the insertion point of this builder
     fn insertion_point(&self) -> InsertionPoint;
-    /// Build the given instruction, returing it's handle and the inner [DataFlowGraph]
+    /// Build the given instruction, returning it's handle and the inner [DataFlowGraph]
     fn build(
         self,
         data: Instruction,

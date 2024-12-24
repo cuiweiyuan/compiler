@@ -135,7 +135,7 @@ by the compiler in some cases, and the set of procedures for which this is done 
 restricted to a hardcoded whitelist of known Miden procedures.
 
 This affects any procedure which returns a type larger than `u32` (excluding `Felt`, which for
-this purpose has the same size). For example, returing a Miden `Word` from a procedure, a common
+this purpose has the same size). For example, returning a Miden `Word` from a procedure, a common
 return type, is not compatible with Rust's ABI - it will attempt to generate code which allocates
 stack space in the caller, which it expects the callee to write to, inserting a new parameter at
 the start of the parameter list, and expecting nothing to be returned by value. The compiler handles
